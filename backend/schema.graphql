@@ -1,0 +1,353 @@
+scalar Time
+scalar Upload
+
+# User Types
+type User {
+  id: ID!
+  email: String!
+  name: String!
+  profileImage: String
+  role: Role!
+  storageUsed: Int!
+  storageQuota: Int!
+  emailVerified: Boolean!
+  lastLoginAt: Time
+  enterpriseId: ID
+  enterpriseRole: EnterpriseRole
+  enterprise: Enterprise
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EnterpriseRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+# Enterprise Types
+type Enterprise {
+  id: ID!
+  name: String!
+  slug: String!
+  domain: String
+  storageQuota: Int!
+  storageUsed: Int!
+  maxUsers: Int!
+  currentUsers: Int!
+  settings: JSON!
+  subscriptionPlan: SubscriptionPlan!
+  subscriptionStatus: SubscriptionStatus!
+  subscriptionExpiresAt: Time
+  billingEmail: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+enum SubscriptionPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+type EnterpriseStats {
+  totalUsers: Int!
+  totalFiles: Int!
+  storageUsed: Int!
+  storageQuota: Int!
+  storageUsagePercentage: Float!
+  filesThisMonth: Int!
+  activeUsers: Int!
+}
+
+type EnterpriseInvitation {
+  id: ID!
+  enterpriseId: ID!
+  email: String!
+  role: EnterpriseRole!
+  token: String!
+  expiresAt: Time!
+  acceptedAt: Time
+  createdAt: Time!
+  enterprise: Enterprise
+  invitedBy: User
+}
+
+# File Types
+type File {
+  id: ID!
+  userId: ID!
+  folderId: ID
+  filename: String!
+  originalName: String!
+  mimeType: String!
+  fileSize: Int!
+  contentHash: String!
+  description: String
+  tags: [String!]!
+  visibility: FileVisibility!
+  shareToken: String
+  downloadCount: Int!
+  uploadDate: Time!
+  updatedAt: Time!
+  user: User
+  folder: Folder
+  shares: [FileShare!]!
+}
+
+enum FileVisibility {
+  PRIVATE
+  PUBLIC
+  SHARED_WITH_USERS
+}
+
+type FileContent {
+  contentHash: ID!
+  filePath: String!
+  fileSize: Int!
+  referenceCount: Int!
+  enterpriseId: ID
+  createdAt: Time!
+}
+
+type Folder {
+  id: ID!
+  userId: ID!
+  name: String!
+  parentId: ID
+  createdAt: Time!
+  updatedAt: Time!
+  parent: Folder
+  children: [Folder!]!
+  files: [File!]!
+}
+
+type FileShare {
+  id: ID!
+  fileId: ID!
+  sharedByUserId: ID!
+  sharedWithUserId: ID!
+  permissionType: PermissionType!
+  expiresAt: Time
+  lastAccessedAt: Time
+  accessCount: Int!
+  createdAt: Time!
+  file: File
+  sharedBy: User
+  sharedWith: User
+}
+
+enum PermissionType {
+  VIEW
+  DOWNLOAD
+  EDIT
+  DELETE
+}
+
+type FileSearchResult {
+  files: [File!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+}
+
+# Storage Stats
+type StorageStats {
+  userId: ID!
+  totalUsed: Int!
+  originalSize: Int!
+  savings: Int!
+  savingsPercentage: Float!
+  totalUsedFormatted: String!
+  originalSizeFormatted: String!
+  savingsFormatted: String!
+}
+
+# Input Types
+input CreateUserInput {
+  email: String!
+  name: String!
+  password: String!
+}
+
+input UpdateUserInput {
+  name: String
+  profileImage: String
+}
+
+# Removed Google OAuth for secure internal authentication only
+
+input CreateEnterpriseInput {
+  name: String!
+  slug: String!
+  domain: String
+  billingEmail: String
+  settings: JSON
+}
+
+input UpdateEnterpriseInput {
+  name: String
+  domain: String
+  billingEmail: String
+  settings: JSON
+  maxUsers: Int
+  storageQuota: Int
+}
+
+input InviteUserInput {
+  email: String!
+  role: EnterpriseRole!
+}
+
+input FileUploadInput {
+  folderId: ID
+  description: String
+  tags: [String!]
+  visibility: FileVisibility = PRIVATE
+}
+
+input UpdateFileInput {
+  filename: String
+  description: String
+  tags: [String!]
+  visibility: FileVisibility
+  folderId: ID
+}
+
+input CreateFolderInput {
+  name: String!
+  parentId: ID
+}
+
+input UpdateFolderInput {
+  name: String
+  parentId: ID
+}
+
+input FileSearchInput {
+  query: String
+  mimeTypes: [String!]
+  minSize: Int
+  maxSize: Int
+  uploadedAfter: Time
+  uploadedBefore: Time
+  tags: [String!]
+  uploaderId: ID
+  visibility: FileVisibility
+  limit: Int = 20
+  offset: Int = 0
+  sortBy: String = "upload_date"
+  sortOrder: String = "desc"
+}
+
+input ShareFileInput {
+  fileId: ID!
+  userIds: [ID!]!
+  permissionType: PermissionType!
+  expiresAt: Time
+}
+
+# Queries
+type Query {
+  # User queries
+  me: User
+  user(id: ID!): User
+  users(limit: Int = 20, offset: Int = 0): [User!]!
+
+  # Enterprise queries
+  enterprise(id: ID!): Enterprise
+  enterpriseBySlug(slug: String!): Enterprise
+  myEnterprise: Enterprise
+  enterpriseStats(id: ID!): EnterpriseStats
+  enterpriseInvitations(enterpriseId: ID!, limit: Int = 20, offset: Int = 0): [EnterpriseInvitation!]!
+
+  # File queries
+  file(id: ID!): File
+  files(limit: Int = 20, offset: Int = 0): [File!]!
+  myFiles(limit: Int = 20, offset: Int = 0): [File!]!
+  searchFiles(input: FileSearchInput!): FileSearchResult!
+  sharedWithMe(limit: Int = 20, offset: Int = 0): [File!]!
+  publicFile(shareToken: String!): File
+
+  # Folder queries
+  folder(id: ID!): Folder
+  myFolders: [Folder!]!
+  folderContents(id: ID!): Folder
+
+  # Storage queries
+  storageStats: StorageStats!
+
+  # Download URL (presigned if supported)
+  downloadUrl(fileId: ID!, expirationHours: Int = 1): String!
+}
+
+# Mutations
+type Mutation {
+  # Secure Internal Authentication
+  register(input: CreateUserInput!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  logout: Boolean!
+  refreshToken: AuthPayload!
+
+  # User management
+  updateProfile(input: UpdateUserInput!): User!
+  changePassword(currentPassword: String!, newPassword: String!): Boolean!
+  requestPasswordReset(email: String!): Boolean!
+  resetPassword(token: String!, newPassword: String!): Boolean!
+  verifyEmail(token: String!): Boolean!
+
+  # Enterprise management
+  createEnterprise(input: CreateEnterpriseInput!): Enterprise!
+  updateEnterprise(id: ID!, input: UpdateEnterpriseInput!): Enterprise!
+  deleteEnterprise(id: ID!): Boolean!
+  inviteUser(enterpriseId: ID!, input: InviteUserInput!): EnterpriseInvitation!
+  acceptInvitation(token: String!): Boolean!
+  removeUserFromEnterprise(enterpriseId: ID!, userId: ID!): Boolean!
+
+  # File operations
+  uploadFile(file: Upload!, input: FileUploadInput!): File!
+  uploadFiles(files: [Upload!]!, input: FileUploadInput!): [File!]!
+  updateFile(id: ID!, input: UpdateFileInput!): File!
+  deleteFile(id: ID!): Boolean!
+  shareFile(input: ShareFileInput!): [FileShare!]!
+  removeFileShare(shareId: ID!): Boolean!
+
+  # Folder operations
+  createFolder(input: CreateFolderInput!): Folder!
+  updateFolder(id: ID!, input: UpdateFolderInput!): Folder!
+  deleteFolder(id: ID!): Boolean!
+
+  # Admin operations
+  promoteUser(userId: ID!): User!
+  demoteUser(userId: ID!): User!
+  suspendUser(userId: ID!): User!
+  activateUser(userId: ID!): User!
+}
+
+# Authentication
+type AuthPayload {
+  token: String!
+  refreshToken: String!
+  user: User!
+}
+
+# Subscriptions (for real-time updates)
+type Subscription {
+  fileUploaded(userId: ID!): File!
+  fileShared(userId: ID!): FileShare!
+  folderUpdated(userId: ID!): Folder!
+}
+
+# JSON scalar for enterprise settings and other complex data
+scalar JSON

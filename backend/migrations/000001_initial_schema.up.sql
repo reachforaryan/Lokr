@@ -7,11 +7,10 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     profile_image TEXT,
-    password_hash VARCHAR(255), -- NULL for OAuth-only users
-    google_id VARCHAR(255) UNIQUE,
+    password_hash VARCHAR(255) NOT NULL, -- Required for secure internal auth
     role VARCHAR(50) NOT NULL DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
     storage_used BIGINT NOT NULL DEFAULT 0,
-    storage_quota BIGINT NOT NULL DEFAULT 10485760, -- 10MB default
+    storage_quota BIGINT NOT NULL DEFAULT 10737418240, -- 10GB default
     email_verified BOOLEAN NOT NULL DEFAULT false,
     email_verification_token VARCHAR(255),
     email_verification_expires_at TIMESTAMP WITH TIME ZONE,
@@ -99,7 +98,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
 CREATE INDEX IF NOT EXISTS idx_users_reset_password_token ON users(reset_password_token);
 

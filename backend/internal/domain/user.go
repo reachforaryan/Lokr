@@ -16,23 +16,27 @@ const (
 
 // User represents a user in the system
 type User struct {
-	ID                         uuid.UUID  `json:"id" db:"id"`
-	Email                      string     `json:"email" db:"email"`
-	Name                       string     `json:"name" db:"name"`
-	ProfileImage               *string    `json:"profile_image" db:"profile_image"`
-	PasswordHash               *string    `json:"-" db:"password_hash"` // Hidden from JSON
-	GoogleID                   *string    `json:"google_id" db:"google_id"`
-	Role                       Role       `json:"role" db:"role"`
-	StorageUsed                int64      `json:"storage_used" db:"storage_used"`
-	StorageQuota               int64      `json:"storage_quota" db:"storage_quota"`
-	EmailVerified              bool       `json:"email_verified" db:"email_verified"`
-	EmailVerificationToken     *string    `json:"-" db:"email_verification_token"` // Hidden from JSON
-	EmailVerificationExpiresAt *time.Time `json:"-" db:"email_verification_expires_at"`
-	ResetPasswordToken         *string    `json:"-" db:"reset_password_token"`
-	ResetPasswordExpiresAt     *time.Time `json:"-" db:"reset_password_expires_at"`
-	LastLoginAt                *time.Time `json:"last_login_at" db:"last_login_at"`
-	CreatedAt                  time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt                  time.Time  `json:"updated_at" db:"updated_at"`
+	ID                         uuid.UUID       `json:"id" db:"id"`
+	Email                      string          `json:"email" db:"email"`
+	Name                       string          `json:"name" db:"name"`
+	ProfileImage               *string         `json:"profile_image" db:"profile_image"`
+	PasswordHash               string          `json:"-" db:"password_hash"` // Required for internal auth, hidden from JSON
+	Role                       Role            `json:"role" db:"role"`
+	StorageUsed                int64           `json:"storage_used" db:"storage_used"`
+	StorageQuota               int64           `json:"storage_quota" db:"storage_quota"`
+	EmailVerified              bool            `json:"email_verified" db:"email_verified"`
+	EmailVerificationToken     *string         `json:"-" db:"email_verification_token"` // Hidden from JSON
+	EmailVerificationExpiresAt *time.Time      `json:"-" db:"email_verification_expires_at"`
+	ResetPasswordToken         *string         `json:"-" db:"reset_password_token"`
+	ResetPasswordExpiresAt     *time.Time      `json:"-" db:"reset_password_expires_at"`
+	LastLoginAt                *time.Time      `json:"last_login_at" db:"last_login_at"`
+	EnterpriseID               *uuid.UUID      `json:"enterprise_id" db:"enterprise_id"`
+	EnterpriseRole             *EnterpriseRole `json:"enterprise_role" db:"enterprise_role"`
+	CreatedAt                  time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt                  time.Time       `json:"updated_at" db:"updated_at"`
+
+	// Relations (not stored in DB)
+	Enterprise *Enterprise `json:"enterprise,omitempty"`
 }
 
 // CreateUserRequest represents a request to create a new user
@@ -48,18 +52,11 @@ type UpdateUserRequest struct {
 	ProfileImage *string `json:"profile_image" validate:"omitempty,url"`
 }
 
-// GoogleOAuthRequest represents Google OAuth login request
-type GoogleOAuthRequest struct {
-	Code  string `json:"code" validate:"required"`
-	State string `json:"state" validate:"required"`
-}
-
 // UserRepository defines the interface for user data operations
 type UserRepository interface {
 	Create(user *User) error
 	GetByID(id uuid.UUID) (*User, error)
 	GetByEmail(email string) (*User, error)
-	GetByGoogleID(googleID string) (*User, error)
 	Update(user *User) error
 	Delete(id uuid.UUID) error
 	UpdateStorageUsed(userID uuid.UUID, storageUsed int64) error

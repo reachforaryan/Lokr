@@ -53,11 +53,12 @@ type File struct {
 
 // FileContent represents deduplicated file content
 type FileContent struct {
-	ContentHash    string    `json:"content_hash" db:"content_hash"`
-	FilePath       string    `json:"file_path" db:"file_path"`
-	FileSize       int64     `json:"file_size" db:"file_size"`
-	ReferenceCount int       `json:"reference_count" db:"reference_count"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	ContentHash    string     `json:"content_hash" db:"content_hash"`
+	FilePath       string     `json:"file_path" db:"file_path"`
+	FileSize       int64      `json:"file_size" db:"file_size"`
+	ReferenceCount int        `json:"reference_count" db:"reference_count"`
+	EnterpriseID   *uuid.UUID `json:"enterprise_id" db:"enterprise_id"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 }
 
 // Folder represents a folder for organizing files
