@@ -1,14 +1,5 @@
 # Render deployment configuration for Lokr
 services:
-  # PostgreSQL Database (Free Tier)
-  - type: pserv
-    name: lokr-postgres
-    plan: free
-    region: oregon
-    env: ruby
-    buildCommand: "echo 'PostgreSQL service'"
-    startCommand: "echo 'PostgreSQL running'"
-
   # Redis Database (Free Tier)
   - type: redis
     name: lokr-redis
