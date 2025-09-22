@@ -71,9 +71,12 @@ services:
     region: oregon
     buildCommand: "echo 'Keep-alive service ready'"
     startCommand: "node keep-alive.js"
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
 
 databases:
   - name: lokr-postgres

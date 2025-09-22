@@ -2,6 +2,7 @@
 // Pings the service every 10 minutes to prevent sleeping
 
 const https = require('https');
+const http = require('http');
 
 // Your service URLs (update after deployment)
 const services = [
@@ -36,7 +37,31 @@ async function keepAlive() {
   }
 }
 
-// Run immediately
+// Create a simple HTTP server for Render port binding requirement
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Keep-alive service is running\n');
+  } else if (req.url === '/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'active',
+      lastPing: new Date().toISOString(),
+      services: services.length
+    }));
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('🔄 Lokr Keep-Alive Service\nKeeping services active every 10 minutes\n');
+  }
+});
+
+// Start the HTTP server
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`🌐 Keep-alive HTTP server listening on port ${port}`);
+});
+
+// Run keep-alive immediately
 keepAlive();
 
 // Run every 10 minutes (600,000 milliseconds)
