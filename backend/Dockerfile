@@ -1,5 +1,5 @@
 # Multi-stage build for Go backend
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 # Install git and build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -31,12 +31,11 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 # Copy binary
 COPY --from=builder /app/main /
 
-# Create storage directory
+# Set working directory
 WORKDIR /app
-RUN mkdir -p /app/storage
 
-# Expose port
-EXPOSE 8080
+# Expose port (Render uses PORT env var)
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

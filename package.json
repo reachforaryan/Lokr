@@ -1,0 +1,16 @@
+{
+  "name": "lokr-keepalive",
+  "version": "1.0.0",
+  "description": "Keep-alive service for Lokr on Render free tier",
+  "main": "keep-alive.js",
+  "scripts": {
+    "start": "node keep-alive.js",
+    "dev": "node keep-alive.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["keep-alive", "render", "lokr"],
+  "author": "Lokr Team",
+  "license": "MIT"
+}

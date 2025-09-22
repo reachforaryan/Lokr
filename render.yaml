@@ -1,0 +1,89 @@
+# Render deployment configuration for Lokr
+services:
+  # PostgreSQL Database (Free Tier)
+  - type: pserv
+    name: lokr-postgres
+    plan: free
+    region: oregon
+    env: ruby
+    buildCommand: "echo 'PostgreSQL service'"
+    startCommand: "echo 'PostgreSQL running'"
+
+  # Redis Database (Free Tier)
+  - type: redis
+    name: lokr-redis
+    plan: free
+    region: oregon
+
+  # Backend API Service
+  - type: web
+    name: lokr-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: GIN_MODE
+        value: release
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lokr-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: lokr-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STORAGE_PATH
+        value: /tmp/storage
+      - key: MAX_FILE_SIZE
+        value: "104857600"
+      - key: MAX_STORAGE_PER_USER
+        value: "1073741824"
+
+  # Frontend Web Service
+  - type: web
+    name: lokr-frontend
+    runtime: docker
+    plan: free
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: lokr-backend
+          property: host
+      - key: REACT_APP_GRAPHQL_ENDPOINT
+        fromService:
+          type: web
+          name: lokr-backend
+          property: host
+
+  # Keep-Alive Service (prevents sleeping)
+  - type: web
+    name: lokr-keepalive
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: "echo 'Keep-alive service ready'"
+    startCommand: "node keep-alive.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: lokr-postgres
+    plan: free
+    region: oregon
