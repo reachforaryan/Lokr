@@ -142,6 +142,26 @@ type FileShareRequest struct {
 	ExpiresAt      *time.Time       `json:"expires_at"`
 }
 
+type ShareFileInput struct {
+	FileID         uuid.UUID       `json:"fileId"`
+	SharedWithUserID uuid.UUID     `json:"sharedWithUserId"`
+	PermissionType PermissionType  `json:"permissionType"`
+	ExpiresAt      *time.Time      `json:"expiresAt,omitempty"`
+}
+
+type PublicShareResponse struct {
+	ShareToken string `json:"shareToken"`
+	ShareURL   string `json:"shareUrl"`
+}
+
+type FileShareInfo struct {
+	IsShared       bool            `json:"isShared"`
+	ShareToken     string          `json:"shareToken,omitempty"`
+	ShareURL       string          `json:"shareUrl,omitempty"`
+	SharedWithUsers []FileShare     `json:"sharedWithUsers"`
+	DownloadCount   int            `json:"downloadCount"`
+}
+
 // FileRepository defines the interface for file data operations
 type FileRepository interface {
 	Create(file *File) error

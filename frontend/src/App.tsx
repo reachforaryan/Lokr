@@ -2,13 +2,17 @@ import { Routes, Route } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
+import { Register } from './pages/Register'
+import { Welcome } from './pages/Welcome'
 import { Files } from './pages/Files'
 import { Settings } from './pages/Settings'
 import { Admin } from './pages/Admin'
+import { SharedFile } from './pages/SharedFile'
 import { useAuth } from './hooks/useAuth'
 
 function App() {
   const { isAuthenticated, loading } = useAuth()
+  const isOnboardingComplete = localStorage.getItem('onboarding_completed')
 
   if (loading) {
     return (
@@ -21,20 +25,33 @@ function App() {
     )
   }
 
-  if (!isAuthenticated) {
-    return <Login />
-  }
-
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/files" element={<Files />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="*" element={<Dashboard />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      {/* Public shared file route - accessible without authentication */}
+      <Route path="/shared/:token" element={<SharedFile />} />
+
+      {/* Authenticated routes */}
+      {!isAuthenticated ? (
+        <>
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<Login />} />
+        </>
+      ) : isAuthenticated && !isOnboardingComplete ? (
+        <Route path="*" element={<Welcome />} />
+      ) : (
+        <Route path="*" element={
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/files" element={<Files />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<Dashboard />} />
+            </Routes>
+          </Layout>
+        } />
+      )}
+    </Routes>
   )
 }
 

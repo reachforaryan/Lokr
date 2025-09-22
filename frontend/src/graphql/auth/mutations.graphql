@@ -1,0 +1,111 @@
+mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    token
+    refreshToken
+    user {
+      id
+      email
+      name
+      profileImage
+      role
+      storageUsed
+      storageQuota
+      emailVerified
+      lastLoginAt
+      enterpriseId
+      enterpriseRole
+      enterprise {
+        id
+        name
+        slug
+        domain
+        subscriptionPlan
+        subscriptionStatus
+      }
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+mutation Register($input: CreateUserInput!) {
+  register(input: $input) {
+    token
+    refreshToken
+    user {
+      id
+      email
+      name
+      profileImage
+      role
+      storageUsed
+      storageQuota
+      emailVerified
+      lastLoginAt
+      enterpriseId
+      enterpriseRole
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+mutation Logout {
+  logout
+}
+
+mutation RefreshToken {
+  refreshToken {
+    token
+    refreshToken
+    user {
+      id
+      email
+      name
+      profileImage
+      role
+      storageUsed
+      storageQuota
+      emailVerified
+      lastLoginAt
+      enterpriseId
+      enterpriseRole
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+mutation UpdateProfile($input: UpdateUserInput!) {
+  updateProfile(input: $input) {
+    id
+    email
+    name
+    profileImage
+    role
+    storageUsed
+    storageQuota
+    emailVerified
+    lastLoginAt
+    enterpriseId
+    enterpriseRole
+    createdAt
+    updatedAt
+  }
+}
+
+mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
+  changePassword(currentPassword: $currentPassword, newPassword: $newPassword)
+}
+
+mutation RequestPasswordReset($email: String!) {
+  requestPasswordReset(email: $email)
+}
+
+mutation ResetPassword($token: String!, $newPassword: String!) {
+  resetPassword(token: $token, newPassword: $newPassword)
+}
+
+mutation VerifyEmail($token: String!) {
+  verifyEmail(token: $token)
+}

@@ -1,17 +1,38 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useLoginMutation } from '../generated/graphql'
+import { setAuthToken } from '../services/apollo'
 
 export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const [loginMutation] = useLoginMutation()
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
     try {
-      // TODO: Implement email/password login
-      toast.success('Email login not yet implemented')
-    } catch (error) {
-      toast.error('Login failed')
+      const result = await loginMutation({
+        variables: {
+          email,
+          password
+        }
+      })
+
+      if (result.data?.login) {
+        const { token, user } = result.data.login
+        setAuthToken(token)
+        toast.success(`Welcome back, ${user.name}!`)
+        // Reload to trigger auth state change
+        window.location.reload()
+      }
+    } catch (error: any) {
+      console.error('Login error:', error)
+      toast.error(error.message || 'Login failed')
     } finally {
       setIsLoading(false)
     }
@@ -51,6 +72,8 @@ export const Login: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="input"
                 placeholder="Email address"
               />
@@ -65,6 +88,8 @@ export const Login: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="input"
                 placeholder="Password"
               />
@@ -86,6 +111,18 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link
+                to="/register"
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
+                Create one here
+              </Link>
+            </p>
+          </div>
+
           {/* Demo Login Button */}
           <div className="pt-4 border-t border-gray-200">
             <button
@@ -95,7 +132,7 @@ export const Login: React.FC = () => {
               Demo Login (Skip Authentication)
             </button>
             <p className="mt-2 text-xs text-gray-500 text-center">
-              For development purposes only
+              Or try GraphQL login: demo@lokr.com / demo123
             </p>
           </div>
         </div>

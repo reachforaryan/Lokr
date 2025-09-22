@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 
 // HTTP Link
 const httpLink = createHttpLink({
-  uri: '/graphql',
+  uri: 'http://localhost:8080/graphql',
 })
 
 // Auth Link - Add JWT token to requests

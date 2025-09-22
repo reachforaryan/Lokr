@@ -1,0 +1,119 @@
+mutation UploadFile($file: Upload!, $input: FileUploadInput!) {
+  uploadFile(file: $file, input: $input) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    folder {
+      id
+      name
+    }
+  }
+}
+
+mutation UploadFiles($files: [Upload!]!, $input: FileUploadInput!) {
+  uploadFiles(files: $files, input: $input) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    folder {
+      id
+      name
+    }
+  }
+}
+
+mutation UpdateFile($id: ID!, $input: UpdateFileInput!) {
+  updateFile(id: $id, input: $input) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    folder {
+      id
+      name
+    }
+  }
+}
+
+mutation DeleteFile($id: ID!) {
+  deleteFile(id: $id)
+}
+
+mutation ShareFileWithUser($input: ShareFileInput!) {
+  shareFileWithUser(input: $input) {
+    id
+    fileId
+    sharedByUserId
+    sharedWithUserId
+    permissionType
+    expiresAt
+    lastAccessedAt
+    accessCount
+    createdAt
+    file {
+      id
+      filename
+      originalName
+    }
+    sharedBy {
+      id
+      name
+      email
+    }
+    sharedWith {
+      id
+      name
+      email
+    }
+  }
+}
+
+mutation RemoveFileShare($fileId: ID!, $sharedWithUserId: ID!) {
+  removeFileShare(fileId: $fileId, sharedWithUserId: $sharedWithUserId)
+}
+
+mutation CreatePublicShare($fileId: ID!) {
+  createPublicShare(fileId: $fileId) {
+    shareToken
+    shareUrl
+  }
+}
+
+mutation RemovePublicShare($fileId: ID!) {
+  removePublicShare(fileId: $fileId)
+}

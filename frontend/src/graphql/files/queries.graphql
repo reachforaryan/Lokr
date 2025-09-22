@@ -1,0 +1,202 @@
+query GetMyFiles($limit: Int = 20, $offset: Int = 0) {
+  myFiles(limit: $limit, offset: $offset) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+
+query GetFile($id: ID!) {
+  file(id: $id) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    folder {
+      id
+      name
+    }
+    shares {
+      id
+      sharedWithUserId
+      permissionType
+      expiresAt
+      lastAccessedAt
+      accessCount
+      createdAt
+      sharedWith {
+        id
+        name
+        email
+      }
+    }
+  }
+}
+
+query SearchFiles($input: FileSearchInput!) {
+  searchFiles(input: $input) {
+    files {
+      id
+      userId
+      folderId
+      filename
+      originalName
+      mimeType
+      fileSize
+      contentHash
+      description
+      tags
+      visibility
+      shareToken
+      downloadCount
+      uploadDate
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+      folder {
+        id
+        name
+      }
+    }
+    totalCount
+    hasNextPage
+  }
+}
+
+query GetSharedWithMe($limit: Int = 20, $offset: Int = 0) {
+  sharedWithMe(limit: $limit, offset: $offset) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    downloadCount
+    uploadDate
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+
+query GetPublicFile($shareToken: String!) {
+  publicFile(shareToken: $shareToken) {
+    id
+    userId
+    folderId
+    filename
+    originalName
+    mimeType
+    fileSize
+    contentHash
+    description
+    tags
+    visibility
+    shareToken
+    downloadCount
+    uploadDate
+    updatedAt
+    user {
+      id
+      name
+      email
+    }
+  }
+}
+
+query GetDownloadUrl($fileId: ID!, $expirationHours: Int = 1) {
+  downloadUrl(fileId: $fileId, expirationHours: $expirationHours)
+}
+
+query GetStorageStats {
+  storageStats {
+    userId
+    totalUsed
+    originalSize
+    savings
+    savingsPercentage
+    totalUsedFormatted
+    originalSizeFormatted
+    savingsFormatted
+  }
+}
+
+query GetFileShareInfo($fileId: ID!) {
+  fileShareInfo(fileId: $fileId) {
+    isShared
+    shareToken
+    shareUrl
+    downloadCount
+    sharedWithUsers {
+      id
+      shared_with_user_id
+      permission_type
+      created_at
+      shared_with {
+        id
+        name
+        email
+      }
+    }
+  }
+}
+
+query SearchUsers($query: String!, $limit: Int = 10) {
+  searchUsers(query: $query, limit: $limit) {
+    id
+    name
+    email
+  }
+}

@@ -1,0 +1,61 @@
+query Me {
+  me {
+    id
+    email
+    name
+    profileImage
+    role
+    storageUsed
+    storageQuota
+    emailVerified
+    lastLoginAt
+    enterpriseId
+    enterpriseRole
+    enterprise {
+      id
+      name
+      slug
+      domain
+      subscriptionPlan
+      subscriptionStatus
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    email
+    name
+    profileImage
+    role
+    storageUsed
+    storageQuota
+    emailVerified
+    lastLoginAt
+    enterpriseId
+    enterpriseRole
+    createdAt
+    updatedAt
+  }
+}
+
+query GetUsers($limit: Int = 20, $offset: Int = 0) {
+  users(limit: $limit, offset: $offset) {
+    id
+    email
+    name
+    profileImage
+    role
+    storageUsed
+    storageQuota
+    emailVerified
+    lastLoginAt
+    enterpriseId
+    enterpriseRole
+    createdAt
+    updatedAt
+  }
+}
