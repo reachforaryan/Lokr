@@ -5,6 +5,7 @@ services:
     name: lokr-redis
     plan: free
     region: oregon
+    ipAllowList: []
 
   # Backend API Service
   - type: web
