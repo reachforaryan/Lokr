@@ -162,6 +162,18 @@ type FileSearchResult {
   hasNextPage: Boolean!
 }
 
+type FileReference {
+  id: ID!
+  folderId: ID!
+  fileId: ID!
+  userId: ID!
+  name: String
+  createdAt: Time!
+  file: File
+  folder: Folder
+  user: User
+}
+
 # Storage Stats
 type StorageStats {
   userId: ID!
@@ -258,6 +270,12 @@ input ShareFileInput {
   expiresAt: Time
 }
 
+input CreateFileReferenceInput {
+  fileId: ID!
+  folderId: ID!
+  name: String
+}
+
 type FileShareInfo {
   isShared: Boolean!
   shareToken: String
@@ -308,6 +326,10 @@ type Query {
   myFolders: [Folder!]!
   folderContents(id: ID!): Folder
 
+  # File reference queries
+  folderReferences(folderId: ID!): [FileReference!]!
+  fileReferences(fileId: ID!): [FileReference!]!
+
   # Storage queries
   storageStats: StorageStats!
 
@@ -351,7 +373,13 @@ type Mutation {
   # Folder operations
   createFolder(input: CreateFolderInput!): Folder!
   updateFolder(id: ID!, input: UpdateFolderInput!): Folder!
-  deleteFolder(id: ID!): Boolean!
+  deleteFolder(id: ID!, force: Boolean = false): Boolean!
+  moveFolder(id: ID!, newParentId: ID): Folder!
+  moveFile(id: ID!, folderId: ID): File!
+
+  # File reference operations
+  createFileReference(input: CreateFileReferenceInput!): FileReference!
+  deleteFileReference(id: ID!): Boolean!
 
   # Admin operations
   promoteUser(userId: ID!): User!

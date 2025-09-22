@@ -1,0 +1,46 @@
+# Create a new folder
+mutation CreateFolder($input: CreateFolderInput!) {
+  createFolder(input: $input) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+  }
+}
+
+# Update folder (rename or move)
+mutation UpdateFolder($id: ID!, $input: UpdateFolderInput!) {
+  updateFolder(id: $id, input: $input) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+  }
+}
+
+# Delete folder
+mutation DeleteFolder($id: ID!, $force: Boolean) {
+  deleteFolder(id: $id, force: $force)
+}
+
+# Move folder to different parent
+mutation MoveFolder($id: ID!, $newParentId: ID) {
+  moveFolder(id: $id, newParentId: $newParentId) {
+    id
+    name
+    parentId
+    updatedAt
+  }
+}
+
+# Move file to folder
+mutation MoveFile($id: ID!, $folderId: ID) {
+  moveFile(id: $id, folderId: $folderId) {
+    id
+    filename
+    folderId
+    updatedAt
+  }
+}

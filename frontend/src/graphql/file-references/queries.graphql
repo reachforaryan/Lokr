@@ -1,0 +1,49 @@
+query FolderReferences($folderId: ID!) {
+  folderReferences(folderId: $folderId) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      contentHash
+      description
+      tags
+      visibility
+      shareToken
+      downloadCount
+      uploadDate
+      updatedAt
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+
+query FileReferences($fileId: ID!) {
+  fileReferences(fileId: $fileId) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+    }
+    folder {
+      id
+      name
+    }
+  }
+}

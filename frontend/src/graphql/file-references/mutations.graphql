@@ -1,0 +1,33 @@
+mutation CreateFileReference($input: CreateFileReferenceInput!) {
+  createFileReference(input: $input) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      contentHash
+      description
+      tags
+      visibility
+      shareToken
+      downloadCount
+      uploadDate
+      updatedAt
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+
+mutation DeleteFileReference($id: ID!) {
+  deleteFileReference(id: $id)
+}

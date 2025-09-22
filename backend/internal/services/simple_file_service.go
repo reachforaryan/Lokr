@@ -159,6 +159,41 @@ func (s *SimpleFileService) GetFilesByUserID(ctx context.Context, userID uuid.UU
 	return files, nil
 }
 
+func (s *SimpleFileService) MoveFile(ctx context.Context, fileID, userID uuid.UUID, newFolderID *uuid.UUID) (*domain.File, error) {
+	// Verify file ownership
+	var existingFile domain.File
+	err := s.db.QueryRow(ctx, `
+		SELECT id, user_id, folder_id, filename, original_name, mime_type, file_size,
+		       content_hash, description, tags, visibility, share_token, download_count,
+		       upload_date, updated_at
+		FROM files
+		WHERE id = $1 AND user_id = $2`, fileID, userID).Scan(
+		&existingFile.ID, &existingFile.UserID, &existingFile.FolderID, &existingFile.Filename, &existingFile.OriginalName,
+		&existingFile.MimeType, &existingFile.FileSize, &existingFile.ContentHash, &existingFile.Description,
+		&existingFile.Tags, &existingFile.Visibility, &existingFile.ShareToken, &existingFile.DownloadCount,
+		&existingFile.UploadDate, &existingFile.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("file not found or access denied: %w", err)
+	}
+
+	// Update file's folder_id
+	_, err = s.db.Exec(ctx, `
+		UPDATE files
+		SET folder_id = $1, updated_at = NOW()
+		WHERE id = $2 AND user_id = $3`,
+		newFolderID, fileID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to move file: %w", err)
+	}
+
+	// Update the existing file object and return it
+	existingFile.FolderID = newFolderID
+	existingFile.UpdatedAt = time.Now()
+
+	return &existingFile, nil
+}
+
 func generateSafeFilename(originalName string) string {
 	// Remove unsafe characters and generate a safe filename
 	name := strings.ReplaceAll(originalName, " ", "_")

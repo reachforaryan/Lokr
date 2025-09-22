@@ -376,6 +376,265 @@ func (h *Handler) processMutation(ctx context.Context, query string, variables m
 		}
 	}
 
+	// Folder mutations
+	if strings.Contains(query, "createFolder(") {
+		input, ok := variables["input"].(map[string]interface{})
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Input is required"}},
+			}
+		}
+
+		createFolderInput := CreateFolderInput{
+			Name: input["name"].(string),
+		}
+		if parentId, ok := input["parentId"].(string); ok && parentId != "" {
+			createFolderInput.ParentID = &parentId
+		}
+
+		result, err := h.resolver.CreateFolder(ctx, createFolderInput)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"createFolder": map[string]interface{}{
+					"id":        result.ID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"parentId":  nil,
+					"createdAt": result.CreatedAt,
+					"updatedAt": result.UpdatedAt,
+					"parent":    nil,
+					"children":  []interface{}{},
+					"files":     []interface{}{},
+				},
+			},
+		}
+	}
+
+	if strings.Contains(query, "updateFolder(") {
+		folderID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		input, ok := variables["input"].(map[string]interface{})
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Input is required"}},
+			}
+		}
+
+		updateInput := UpdateFolderInput{}
+		if name, ok := input["name"].(string); ok {
+			updateInput.Name = &name
+		}
+		if parentId, ok := input["parentId"].(string); ok {
+			updateInput.ParentID = &parentId
+		}
+
+		result, err := h.resolver.UpdateFolder(ctx, folderID, updateInput)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"updateFolder": map[string]interface{}{
+					"id":        result.ID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"parentId":  nil,
+					"createdAt": result.CreatedAt,
+					"updatedAt": result.UpdatedAt,
+					"parent":    nil,
+					"children":  []interface{}{},
+					"files":     []interface{}{},
+				},
+			},
+		}
+	}
+
+	if strings.Contains(query, "deleteFolder(") {
+		folderID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		var force *bool
+		if f, ok := variables["force"].(bool); ok {
+			force = &f
+		}
+
+		result, err := h.resolver.DeleteFolder(ctx, folderID, force)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"deleteFolder": result,
+			},
+		}
+	}
+
+	if strings.Contains(query, "moveFolder(") {
+		folderID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		var newParentID *string
+		if parentId, ok := variables["newParentId"].(string); ok {
+			newParentID = &parentId
+		}
+
+		result, err := h.resolver.MoveFolder(ctx, folderID, newParentID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"moveFolder": map[string]interface{}{
+					"id":        result.ID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"parentId":  nil,
+					"createdAt": result.CreatedAt,
+					"updatedAt": result.UpdatedAt,
+					"parent":    nil,
+					"children":  []interface{}{},
+					"files":     []interface{}{},
+				},
+			},
+		}
+	}
+
+	if strings.Contains(query, "moveFile(") {
+		fileID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "File ID is required"}},
+			}
+		}
+
+		var folderID *string
+		if folderId, ok := variables["folderId"].(string); ok {
+			folderID = &folderId
+		}
+
+		result, err := h.resolver.MoveFile(ctx, fileID, folderID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"moveFile": map[string]interface{}{
+					"id":           result.ID.String(),
+					"userId":       result.UserID.String(),
+					"folderId":     nil,
+					"filename":     result.Filename,
+					"originalName": result.OriginalName,
+					"mimeType":     result.MimeType,
+					"fileSize":     result.FileSize,
+					"contentHash":  result.ContentHash,
+					"description":  result.Description,
+					"tags":         result.Tags,
+					"visibility":   result.Visibility,
+					"shareToken":   result.ShareToken,
+					"downloadCount": result.DownloadCount,
+					"uploadDate":   result.UploadDate,
+					"updatedAt":    result.UpdatedAt,
+					"user":         nil,
+					"folder":       nil,
+				},
+			},
+		}
+	}
+
+	// File reference mutations
+	if strings.Contains(query, "createFileReference(") {
+		input, ok := variables["input"].(map[string]interface{})
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Input is required"}},
+			}
+		}
+
+		createFileRefInput := CreateFileReferenceInput{
+			FileID:   input["fileId"].(string),
+			FolderID: input["folderId"].(string),
+		}
+		if name, ok := input["name"].(string); ok && name != "" {
+			createFileRefInput.Name = &name
+		}
+
+		result, err := h.resolver.CreateFileReference(ctx, createFileRefInput)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"createFileReference": map[string]interface{}{
+					"id":        result.ID.String(),
+					"folderId":  result.FolderID.String(),
+					"fileId":    result.FileID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"createdAt": result.CreatedAt,
+					"file":      nil,
+					"folder":    nil,
+					"user":      nil,
+				},
+			},
+		}
+	}
+
+	if strings.Contains(query, "deleteFileReference(") {
+		referenceID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Reference ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.DeleteFileReference(ctx, referenceID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"deleteFileReference": result,
+			},
+		}
+	}
+
 	return GraphQLResponse{
 		Errors: []GraphQLError{{Message: "Unknown mutation"}},
 	}
@@ -383,6 +642,37 @@ func (h *Handler) processMutation(ctx context.Context, query string, variables m
 
 func (h *Handler) processQueryOperation(ctx context.Context, query string, variables map[string]interface{}) GraphQLResponse {
 	fmt.Printf("DEBUG: processQueryOperation called with query: %s\n", query)
+
+	// myFolders query (check before "me" since it contains "me")
+	if strings.Contains(query, "myFolders") {
+		result, err := h.resolver.GetMyFolders(ctx)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		folders := make([]map[string]interface{}, len(result))
+		for i, folder := range result {
+			folders[i] = map[string]interface{}{
+				"id":        folder.ID.String(),
+				"userId":    folder.UserID.String(),
+				"name":      folder.Name,
+				"parentId":  nil,
+				"createdAt": folder.CreatedAt,
+				"updatedAt": folder.UpdatedAt,
+				"parent":    nil,
+				"children":  []interface{}{},
+				"files":     []interface{}{},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"myFolders": folders,
+			},
+		}
+	}
 
 	// myFiles query (check before "me" since "myFiles" contains "me")
 	if strings.Contains(query, "myFiles") {
@@ -620,6 +910,183 @@ func (h *Handler) processQueryOperation(ctx context.Context, query string, varia
 		return GraphQLResponse{
 			Data: map[string]interface{}{
 				"sharedWithMe": files,
+			},
+		}
+	}
+
+	if strings.Contains(query, "folderContents") {
+		folderID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.GetFolderContents(ctx, folderID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		children := make([]map[string]interface{}, len(result.Children))
+		for i, child := range result.Children {
+			children[i] = map[string]interface{}{
+				"id":        child.ID.String(),
+				"userId":    child.UserID.String(),
+				"name":      child.Name,
+				"parentId":  nil,
+				"createdAt": child.CreatedAt,
+				"updatedAt": child.UpdatedAt,
+				"parent":    nil,
+				"children":  []interface{}{},
+				"files":     []interface{}{},
+			}
+		}
+
+		files := make([]map[string]interface{}, len(result.Files))
+		for i, file := range result.Files {
+			files[i] = map[string]interface{}{
+				"id":           file.ID.String(),
+				"userId":       file.UserID.String(),
+				"folderId":     nil,
+				"filename":     file.Filename,
+				"originalName": file.OriginalName,
+				"mimeType":     file.MimeType,
+				"fileSize":     file.FileSize,
+				"contentHash":  file.ContentHash,
+				"description":  file.Description,
+				"tags":         file.Tags,
+				"visibility":   file.Visibility,
+				"shareToken":   file.ShareToken,
+				"downloadCount": file.DownloadCount,
+				"uploadDate":   file.UploadDate,
+				"updatedAt":    file.UpdatedAt,
+				"user":         nil,
+				"folder":       nil,
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"folderContents": map[string]interface{}{
+					"id":        result.ID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"parentId":  nil,
+					"createdAt": result.CreatedAt,
+					"updatedAt": result.UpdatedAt,
+					"parent":    nil,
+					"children":  children,
+					"files":     files,
+				},
+			},
+		}
+	}
+
+	if strings.Contains(query, "folder(") {
+		folderID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.GetFolder(ctx, folderID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"folder": map[string]interface{}{
+					"id":        result.ID.String(),
+					"userId":    result.UserID.String(),
+					"name":      result.Name,
+					"parentId":  nil,
+					"createdAt": result.CreatedAt,
+					"updatedAt": result.UpdatedAt,
+					"parent":    nil,
+					"children":  []interface{}{},
+					"files":     []interface{}{},
+				},
+			},
+		}
+	}
+
+	// File reference queries
+	if strings.Contains(query, "folderReferences") {
+		folderID, ok := variables["folderId"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "Folder ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.FolderReferences(ctx, folderID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		references := make([]map[string]interface{}, len(result))
+		for i, ref := range result {
+			references[i] = map[string]interface{}{
+				"id":        ref.ID.String(),
+				"folderId":  ref.FolderID.String(),
+				"fileId":    ref.FileID.String(),
+				"userId":    ref.UserID.String(),
+				"name":      ref.Name,
+				"createdAt": ref.CreatedAt,
+				"file":      nil,
+				"folder":    nil,
+				"user":      nil,
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"folderReferences": references,
+			},
+		}
+	}
+
+	if strings.Contains(query, "fileReferences") {
+		fileID, ok := variables["fileId"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "File ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.FileReferences(ctx, fileID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		references := make([]map[string]interface{}, len(result))
+		for i, ref := range result {
+			references[i] = map[string]interface{}{
+				"id":        ref.ID.String(),
+				"folderId":  ref.FolderID.String(),
+				"fileId":    ref.FileID.String(),
+				"userId":    ref.UserID.String(),
+				"name":      ref.Name,
+				"createdAt": ref.CreatedAt,
+				"file":      nil,
+				"folder":    nil,
+				"user":      nil,
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"fileReferences": references,
 			},
 		}
 	}

@@ -36,6 +36,12 @@ export type CreateEnterpriseInput = {
   slug: Scalars['String']['input'];
 };
 
+export type CreateFileReferenceInput = {
+  fileId: Scalars['ID']['input'];
+  folderId: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateFolderInput = {
   name: Scalars['String']['input'];
   parentId?: InputMaybe<Scalars['ID']['input']>;
@@ -127,6 +133,19 @@ export type FileContent = {
   filePath: Scalars['String']['output'];
   fileSize: Scalars['Int']['output'];
   referenceCount: Scalars['Int']['output'];
+};
+
+export type FileReference = {
+  __typename?: 'FileReference';
+  createdAt: Scalars['Time']['output'];
+  file?: Maybe<File>;
+  fileId: Scalars['ID']['output'];
+  folder?: Maybe<Folder>;
+  folderId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+  user?: Maybe<User>;
+  userId: Scalars['ID']['output'];
 };
 
 export type FileSearchInput = {
@@ -223,15 +242,19 @@ export type Mutation = {
   activateUser: User;
   changePassword: Scalars['Boolean']['output'];
   createEnterprise: Enterprise;
+  createFileReference: FileReference;
   createFolder: Folder;
   createPublicShare: PublicShareResponse;
   deleteEnterprise: Scalars['Boolean']['output'];
   deleteFile: Scalars['Boolean']['output'];
+  deleteFileReference: Scalars['Boolean']['output'];
   deleteFolder: Scalars['Boolean']['output'];
   demoteUser: User;
   inviteUser: EnterpriseInvitation;
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
+  moveFile: File;
+  moveFolder: Folder;
   promoteUser: User;
   refreshToken: AuthPayload;
   register: AuthPayload;
@@ -273,6 +296,11 @@ export type MutationCreateEnterpriseArgs = {
 };
 
 
+export type MutationCreateFileReferenceArgs = {
+  input: CreateFileReferenceInput;
+};
+
+
 export type MutationCreateFolderArgs = {
   input: CreateFolderInput;
 };
@@ -293,7 +321,13 @@ export type MutationDeleteFileArgs = {
 };
 
 
+export type MutationDeleteFileReferenceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationDeleteFolderArgs = {
+  force?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
 };
 
@@ -312,6 +346,18 @@ export type MutationInviteUserArgs = {
 export type MutationLoginArgs = {
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
+};
+
+
+export type MutationMoveFileArgs = {
+  folderId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationMoveFolderArgs = {
+  id: Scalars['ID']['input'];
+  newParentId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -423,10 +469,12 @@ export type Query = {
   enterpriseInvitations: Array<EnterpriseInvitation>;
   enterpriseStats?: Maybe<EnterpriseStats>;
   file?: Maybe<File>;
+  fileReferences: Array<FileReference>;
   fileShareInfo: FileShareInfo;
   files: Array<File>;
   folder?: Maybe<Folder>;
   folderContents?: Maybe<Folder>;
+  folderReferences: Array<FileReference>;
   me?: Maybe<User>;
   myEnterprise?: Maybe<Enterprise>;
   myFiles: Array<File>;
@@ -474,6 +522,11 @@ export type QueryFileArgs = {
 };
 
 
+export type QueryFileReferencesArgs = {
+  fileId: Scalars['ID']['input'];
+};
+
+
 export type QueryFileShareInfoArgs = {
   fileId: Scalars['ID']['input'];
 };
@@ -492,6 +545,11 @@ export type QueryFolderArgs = {
 
 export type QueryFolderContentsArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryFolderReferencesArgs = {
+  folderId: Scalars['ID']['input'];
 };
 
 
@@ -719,6 +777,34 @@ export type GetUsersQueryVariables = Exact<{
 
 export type GetUsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', id: string, email: string, name: string, profileImage?: string | null, role: Role, storageUsed: number, storageQuota: number, emailVerified: boolean, lastLoginAt?: string | null, enterpriseId?: string | null, enterpriseRole?: EnterpriseRole | null, createdAt: string, updatedAt: string }> };
 
+export type CreateFileReferenceMutationVariables = Exact<{
+  input: CreateFileReferenceInput;
+}>;
+
+
+export type CreateFileReferenceMutation = { __typename?: 'Mutation', createFileReference: { __typename?: 'FileReference', id: string, folderId: string, fileId: string, userId: string, name?: string | null, createdAt: string, file?: { __typename?: 'File', id: string, filename: string, originalName: string, mimeType: string, fileSize: number, contentHash: string, description?: string | null, tags: Array<string>, visibility: FileVisibility, shareToken?: string | null, downloadCount: number, uploadDate: string, updatedAt: string } | null, folder?: { __typename?: 'Folder', id: string, name: string } | null } };
+
+export type DeleteFileReferenceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteFileReferenceMutation = { __typename?: 'Mutation', deleteFileReference: boolean };
+
+export type FolderReferencesQueryVariables = Exact<{
+  folderId: Scalars['ID']['input'];
+}>;
+
+
+export type FolderReferencesQuery = { __typename?: 'Query', folderReferences: Array<{ __typename?: 'FileReference', id: string, folderId: string, fileId: string, userId: string, name?: string | null, createdAt: string, file?: { __typename?: 'File', id: string, filename: string, originalName: string, mimeType: string, fileSize: number, contentHash: string, description?: string | null, tags: Array<string>, visibility: FileVisibility, shareToken?: string | null, downloadCount: number, uploadDate: string, updatedAt: string } | null, folder?: { __typename?: 'Folder', id: string, name: string } | null }> };
+
+export type FileReferencesQueryVariables = Exact<{
+  fileId: Scalars['ID']['input'];
+}>;
+
+
+export type FileReferencesQuery = { __typename?: 'Query', fileReferences: Array<{ __typename?: 'FileReference', id: string, folderId: string, fileId: string, userId: string, name?: string | null, createdAt: string, file?: { __typename?: 'File', id: string, filename: string, originalName: string } | null, folder?: { __typename?: 'Folder', id: string, name: string } | null }> };
+
 export type UploadFileMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
   input: FileUploadInput;
@@ -843,6 +929,64 @@ export type SearchUsersQueryVariables = Exact<{
 
 
 export type SearchUsersQuery = { __typename?: 'Query', searchUsers: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
+
+export type CreateFolderMutationVariables = Exact<{
+  input: CreateFolderInput;
+}>;
+
+
+export type CreateFolderMutation = { __typename?: 'Mutation', createFolder: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateFolderMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateFolderInput;
+}>;
+
+
+export type UpdateFolderMutation = { __typename?: 'Mutation', updateFolder: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteFolderMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  force?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type DeleteFolderMutation = { __typename?: 'Mutation', deleteFolder: boolean };
+
+export type MoveFolderMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  newParentId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type MoveFolderMutation = { __typename?: 'Mutation', moveFolder: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, updatedAt: string } };
+
+export type MoveFileMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  folderId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type MoveFileMutation = { __typename?: 'Mutation', moveFile: { __typename?: 'File', id: string, filename: string, folderId?: string | null, updatedAt: string } };
+
+export type GetMyFoldersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetMyFoldersQuery = { __typename?: 'Query', myFolders: Array<{ __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string, children: Array<{ __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string }>, files: Array<{ __typename?: 'File', id: string, filename: string, originalName: string, mimeType: string, fileSize: number, uploadDate: string }> }> };
+
+export type GetFolderContentsQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetFolderContentsQuery = { __typename?: 'Query', folderContents?: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string, children: Array<{ __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string }>, files: Array<{ __typename?: 'File', id: string, filename: string, originalName: string, mimeType: string, fileSize: number, uploadDate: string, downloadCount: number }> } | null };
+
+export type GetFolderQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetFolderQuery = { __typename?: 'Query', folder?: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string, parent?: { __typename?: 'Folder', id: string, name: string, parentId?: string | null } | null } | null };
 
 
 export const LoginDocument = gql`
@@ -1350,6 +1494,202 @@ export function useGetUsersLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHoo
 export type GetUsersQueryHookResult = ReturnType<typeof useGetUsersQuery>;
 export type GetUsersLazyQueryHookResult = ReturnType<typeof useGetUsersLazyQuery>;
 export type GetUsersQueryResult = Apollo.QueryResult<GetUsersQuery, GetUsersQueryVariables>;
+export const CreateFileReferenceDocument = gql`
+    mutation CreateFileReference($input: CreateFileReferenceInput!) {
+  createFileReference(input: $input) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      contentHash
+      description
+      tags
+      visibility
+      shareToken
+      downloadCount
+      uploadDate
+      updatedAt
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+    `;
+export type CreateFileReferenceMutationFn = Apollo.MutationFunction<CreateFileReferenceMutation, CreateFileReferenceMutationVariables>;
+
+/**
+ * __useCreateFileReferenceMutation__
+ *
+ * To run a mutation, you first call `useCreateFileReferenceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateFileReferenceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createFileReferenceMutation, { data, loading, error }] = useCreateFileReferenceMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateFileReferenceMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<CreateFileReferenceMutation, CreateFileReferenceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<CreateFileReferenceMutation, CreateFileReferenceMutationVariables>(CreateFileReferenceDocument, options);
+      }
+export type CreateFileReferenceMutationHookResult = ReturnType<typeof useCreateFileReferenceMutation>;
+export type CreateFileReferenceMutationResult = Apollo.MutationResult<CreateFileReferenceMutation>;
+export type CreateFileReferenceMutationOptions = Apollo.BaseMutationOptions<CreateFileReferenceMutation, CreateFileReferenceMutationVariables>;
+export const DeleteFileReferenceDocument = gql`
+    mutation DeleteFileReference($id: ID!) {
+  deleteFileReference(id: $id)
+}
+    `;
+export type DeleteFileReferenceMutationFn = Apollo.MutationFunction<DeleteFileReferenceMutation, DeleteFileReferenceMutationVariables>;
+
+/**
+ * __useDeleteFileReferenceMutation__
+ *
+ * To run a mutation, you first call `useDeleteFileReferenceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteFileReferenceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteFileReferenceMutation, { data, loading, error }] = useDeleteFileReferenceMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteFileReferenceMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<DeleteFileReferenceMutation, DeleteFileReferenceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<DeleteFileReferenceMutation, DeleteFileReferenceMutationVariables>(DeleteFileReferenceDocument, options);
+      }
+export type DeleteFileReferenceMutationHookResult = ReturnType<typeof useDeleteFileReferenceMutation>;
+export type DeleteFileReferenceMutationResult = Apollo.MutationResult<DeleteFileReferenceMutation>;
+export type DeleteFileReferenceMutationOptions = Apollo.BaseMutationOptions<DeleteFileReferenceMutation, DeleteFileReferenceMutationVariables>;
+export const FolderReferencesDocument = gql`
+    query FolderReferences($folderId: ID!) {
+  folderReferences(folderId: $folderId) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      contentHash
+      description
+      tags
+      visibility
+      shareToken
+      downloadCount
+      uploadDate
+      updatedAt
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+    `;
+
+/**
+ * __useFolderReferencesQuery__
+ *
+ * To run a query within a React component, call `useFolderReferencesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFolderReferencesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFolderReferencesQuery({
+ *   variables: {
+ *      folderId: // value for 'folderId'
+ *   },
+ * });
+ */
+export function useFolderReferencesQuery(baseOptions: ApolloReactHooks.QueryHookOptions<FolderReferencesQuery, FolderReferencesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<FolderReferencesQuery, FolderReferencesQueryVariables>(FolderReferencesDocument, options);
+      }
+export function useFolderReferencesLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<FolderReferencesQuery, FolderReferencesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<FolderReferencesQuery, FolderReferencesQueryVariables>(FolderReferencesDocument, options);
+        }
+export type FolderReferencesQueryHookResult = ReturnType<typeof useFolderReferencesQuery>;
+export type FolderReferencesLazyQueryHookResult = ReturnType<typeof useFolderReferencesLazyQuery>;
+export type FolderReferencesQueryResult = Apollo.QueryResult<FolderReferencesQuery, FolderReferencesQueryVariables>;
+export const FileReferencesDocument = gql`
+    query FileReferences($fileId: ID!) {
+  fileReferences(fileId: $fileId) {
+    id
+    folderId
+    fileId
+    userId
+    name
+    createdAt
+    file {
+      id
+      filename
+      originalName
+    }
+    folder {
+      id
+      name
+    }
+  }
+}
+    `;
+
+/**
+ * __useFileReferencesQuery__
+ *
+ * To run a query within a React component, call `useFileReferencesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFileReferencesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFileReferencesQuery({
+ *   variables: {
+ *      fileId: // value for 'fileId'
+ *   },
+ * });
+ */
+export function useFileReferencesQuery(baseOptions: ApolloReactHooks.QueryHookOptions<FileReferencesQuery, FileReferencesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<FileReferencesQuery, FileReferencesQueryVariables>(FileReferencesDocument, options);
+      }
+export function useFileReferencesLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<FileReferencesQuery, FileReferencesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<FileReferencesQuery, FileReferencesQueryVariables>(FileReferencesDocument, options);
+        }
+export type FileReferencesQueryHookResult = ReturnType<typeof useFileReferencesQuery>;
+export type FileReferencesLazyQueryHookResult = ReturnType<typeof useFileReferencesLazyQuery>;
+export type FileReferencesQueryResult = Apollo.QueryResult<FileReferencesQuery, FileReferencesQueryVariables>;
 export const UploadFileDocument = gql`
     mutation UploadFile($file: Upload!, $input: FileUploadInput!) {
   uploadFile(file: $file, input: $input) {
@@ -2157,3 +2497,336 @@ export function useSearchUsersLazyQuery(baseOptions?: ApolloReactHooks.LazyQuery
 export type SearchUsersQueryHookResult = ReturnType<typeof useSearchUsersQuery>;
 export type SearchUsersLazyQueryHookResult = ReturnType<typeof useSearchUsersLazyQuery>;
 export type SearchUsersQueryResult = Apollo.QueryResult<SearchUsersQuery, SearchUsersQueryVariables>;
+export const CreateFolderDocument = gql`
+    mutation CreateFolder($input: CreateFolderInput!) {
+  createFolder(input: $input) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+  }
+}
+    `;
+export type CreateFolderMutationFn = Apollo.MutationFunction<CreateFolderMutation, CreateFolderMutationVariables>;
+
+/**
+ * __useCreateFolderMutation__
+ *
+ * To run a mutation, you first call `useCreateFolderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateFolderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createFolderMutation, { data, loading, error }] = useCreateFolderMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateFolderMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<CreateFolderMutation, CreateFolderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<CreateFolderMutation, CreateFolderMutationVariables>(CreateFolderDocument, options);
+      }
+export type CreateFolderMutationHookResult = ReturnType<typeof useCreateFolderMutation>;
+export type CreateFolderMutationResult = Apollo.MutationResult<CreateFolderMutation>;
+export type CreateFolderMutationOptions = Apollo.BaseMutationOptions<CreateFolderMutation, CreateFolderMutationVariables>;
+export const UpdateFolderDocument = gql`
+    mutation UpdateFolder($id: ID!, $input: UpdateFolderInput!) {
+  updateFolder(id: $id, input: $input) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+  }
+}
+    `;
+export type UpdateFolderMutationFn = Apollo.MutationFunction<UpdateFolderMutation, UpdateFolderMutationVariables>;
+
+/**
+ * __useUpdateFolderMutation__
+ *
+ * To run a mutation, you first call `useUpdateFolderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateFolderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateFolderMutation, { data, loading, error }] = useUpdateFolderMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateFolderMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<UpdateFolderMutation, UpdateFolderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<UpdateFolderMutation, UpdateFolderMutationVariables>(UpdateFolderDocument, options);
+      }
+export type UpdateFolderMutationHookResult = ReturnType<typeof useUpdateFolderMutation>;
+export type UpdateFolderMutationResult = Apollo.MutationResult<UpdateFolderMutation>;
+export type UpdateFolderMutationOptions = Apollo.BaseMutationOptions<UpdateFolderMutation, UpdateFolderMutationVariables>;
+export const DeleteFolderDocument = gql`
+    mutation DeleteFolder($id: ID!, $force: Boolean) {
+  deleteFolder(id: $id, force: $force)
+}
+    `;
+export type DeleteFolderMutationFn = Apollo.MutationFunction<DeleteFolderMutation, DeleteFolderMutationVariables>;
+
+/**
+ * __useDeleteFolderMutation__
+ *
+ * To run a mutation, you first call `useDeleteFolderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteFolderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteFolderMutation, { data, loading, error }] = useDeleteFolderMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      force: // value for 'force'
+ *   },
+ * });
+ */
+export function useDeleteFolderMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<DeleteFolderMutation, DeleteFolderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<DeleteFolderMutation, DeleteFolderMutationVariables>(DeleteFolderDocument, options);
+      }
+export type DeleteFolderMutationHookResult = ReturnType<typeof useDeleteFolderMutation>;
+export type DeleteFolderMutationResult = Apollo.MutationResult<DeleteFolderMutation>;
+export type DeleteFolderMutationOptions = Apollo.BaseMutationOptions<DeleteFolderMutation, DeleteFolderMutationVariables>;
+export const MoveFolderDocument = gql`
+    mutation MoveFolder($id: ID!, $newParentId: ID) {
+  moveFolder(id: $id, newParentId: $newParentId) {
+    id
+    name
+    parentId
+    updatedAt
+  }
+}
+    `;
+export type MoveFolderMutationFn = Apollo.MutationFunction<MoveFolderMutation, MoveFolderMutationVariables>;
+
+/**
+ * __useMoveFolderMutation__
+ *
+ * To run a mutation, you first call `useMoveFolderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useMoveFolderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [moveFolderMutation, { data, loading, error }] = useMoveFolderMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      newParentId: // value for 'newParentId'
+ *   },
+ * });
+ */
+export function useMoveFolderMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<MoveFolderMutation, MoveFolderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<MoveFolderMutation, MoveFolderMutationVariables>(MoveFolderDocument, options);
+      }
+export type MoveFolderMutationHookResult = ReturnType<typeof useMoveFolderMutation>;
+export type MoveFolderMutationResult = Apollo.MutationResult<MoveFolderMutation>;
+export type MoveFolderMutationOptions = Apollo.BaseMutationOptions<MoveFolderMutation, MoveFolderMutationVariables>;
+export const MoveFileDocument = gql`
+    mutation MoveFile($id: ID!, $folderId: ID) {
+  moveFile(id: $id, folderId: $folderId) {
+    id
+    filename
+    folderId
+    updatedAt
+  }
+}
+    `;
+export type MoveFileMutationFn = Apollo.MutationFunction<MoveFileMutation, MoveFileMutationVariables>;
+
+/**
+ * __useMoveFileMutation__
+ *
+ * To run a mutation, you first call `useMoveFileMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useMoveFileMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [moveFileMutation, { data, loading, error }] = useMoveFileMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      folderId: // value for 'folderId'
+ *   },
+ * });
+ */
+export function useMoveFileMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<MoveFileMutation, MoveFileMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<MoveFileMutation, MoveFileMutationVariables>(MoveFileDocument, options);
+      }
+export type MoveFileMutationHookResult = ReturnType<typeof useMoveFileMutation>;
+export type MoveFileMutationResult = Apollo.MutationResult<MoveFileMutation>;
+export type MoveFileMutationOptions = Apollo.BaseMutationOptions<MoveFileMutation, MoveFileMutationVariables>;
+export const GetMyFoldersDocument = gql`
+    query GetMyFolders {
+  myFolders {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    children {
+      id
+      name
+      parentId
+      createdAt
+      updatedAt
+    }
+    files {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      uploadDate
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetMyFoldersQuery__
+ *
+ * To run a query within a React component, call `useGetMyFoldersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetMyFoldersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetMyFoldersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetMyFoldersQuery(baseOptions?: ApolloReactHooks.QueryHookOptions<GetMyFoldersQuery, GetMyFoldersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetMyFoldersQuery, GetMyFoldersQueryVariables>(GetMyFoldersDocument, options);
+      }
+export function useGetMyFoldersLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetMyFoldersQuery, GetMyFoldersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetMyFoldersQuery, GetMyFoldersQueryVariables>(GetMyFoldersDocument, options);
+        }
+export type GetMyFoldersQueryHookResult = ReturnType<typeof useGetMyFoldersQuery>;
+export type GetMyFoldersLazyQueryHookResult = ReturnType<typeof useGetMyFoldersLazyQuery>;
+export type GetMyFoldersQueryResult = Apollo.QueryResult<GetMyFoldersQuery, GetMyFoldersQueryVariables>;
+export const GetFolderContentsDocument = gql`
+    query GetFolderContents($id: ID!) {
+  folderContents(id: $id) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    children {
+      id
+      name
+      parentId
+      createdAt
+      updatedAt
+    }
+    files {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      uploadDate
+      downloadCount
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetFolderContentsQuery__
+ *
+ * To run a query within a React component, call `useGetFolderContentsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetFolderContentsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetFolderContentsQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetFolderContentsQuery(baseOptions: ApolloReactHooks.QueryHookOptions<GetFolderContentsQuery, GetFolderContentsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetFolderContentsQuery, GetFolderContentsQueryVariables>(GetFolderContentsDocument, options);
+      }
+export function useGetFolderContentsLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetFolderContentsQuery, GetFolderContentsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetFolderContentsQuery, GetFolderContentsQueryVariables>(GetFolderContentsDocument, options);
+        }
+export type GetFolderContentsQueryHookResult = ReturnType<typeof useGetFolderContentsQuery>;
+export type GetFolderContentsLazyQueryHookResult = ReturnType<typeof useGetFolderContentsLazyQuery>;
+export type GetFolderContentsQueryResult = Apollo.QueryResult<GetFolderContentsQuery, GetFolderContentsQueryVariables>;
+export const GetFolderDocument = gql`
+    query GetFolder($id: ID!) {
+  folder(id: $id) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    parent {
+      id
+      name
+      parentId
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetFolderQuery__
+ *
+ * To run a query within a React component, call `useGetFolderQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetFolderQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetFolderQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetFolderQuery(baseOptions: ApolloReactHooks.QueryHookOptions<GetFolderQuery, GetFolderQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetFolderQuery, GetFolderQueryVariables>(GetFolderDocument, options);
+      }
+export function useGetFolderLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetFolderQuery, GetFolderQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetFolderQuery, GetFolderQueryVariables>(GetFolderDocument, options);
+        }
+export type GetFolderQueryHookResult = ReturnType<typeof useGetFolderQuery>;
+export type GetFolderLazyQueryHookResult = ReturnType<typeof useGetFolderLazyQuery>;
+export type GetFolderQueryResult = Apollo.QueryResult<GetFolderQuery, GetFolderQueryVariables>;

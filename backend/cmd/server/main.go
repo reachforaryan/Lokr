@@ -22,6 +22,7 @@ import (
 	"lokr-backend/internal/domain"
 	"lokr-backend/internal/infrastructure"
 	"lokr-backend/internal/graphql"
+	"lokr-backend/internal/repository"
 	"lokr-backend/internal/services"
 	"lokr-backend/pkg/auth"
 )
@@ -58,6 +59,11 @@ func main() {
 	}
 	jwtManager := auth.NewJWTManager(jwtSecret)
 
+	// Initialize repositories
+	fileReferenceRepo := repository.NewFileReferenceRepository(infra.DB, logger)
+	fileRepo := repository.NewFileRepository(infra.DB, logger)
+	folderRepo := repository.NewFolderRepository(infra.DB, logger)
+
 	// Initialize services
 	userService := services.NewUserService(infra.DB)
 
@@ -72,8 +78,14 @@ func main() {
 	// Initialize file sharing service
 	fileSharingService := services.NewFileSharingService(infra.DB)
 
+	// Initialize folder service
+	folderService := services.NewFolderService(infra.DB)
+
+	// Initialize file reference service
+	fileReferenceService := services.NewFileReferenceService(fileReferenceRepo, fileRepo, folderRepo)
+
 	// Initialize GraphQL resolver and handler
-	resolver := graphql.NewResolver(userService, simpleFileService, fileSharingService, jwtManager)
+	resolver := graphql.NewResolver(userService, simpleFileService, fileSharingService, folderService, fileReferenceService, jwtManager)
 	graphqlHandler := graphql.NewHandler(resolver, jwtManager)
 
 	// Create Gin router

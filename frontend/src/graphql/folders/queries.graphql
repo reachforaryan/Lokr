@@ -1,0 +1,68 @@
+# Get user's folder tree structure
+query GetMyFolders {
+  myFolders {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    children {
+      id
+      name
+      parentId
+      createdAt
+      updatedAt
+    }
+    files {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      uploadDate
+    }
+  }
+}
+
+# Get specific folder contents
+query GetFolderContents($id: ID!) {
+  folderContents(id: $id) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    children {
+      id
+      name
+      parentId
+      createdAt
+      updatedAt
+    }
+    files {
+      id
+      filename
+      originalName
+      mimeType
+      fileSize
+      uploadDate
+      downloadCount
+    }
+  }
+}
+
+# Get specific folder details
+query GetFolder($id: ID!) {
+  folder(id: $id) {
+    id
+    name
+    parentId
+    createdAt
+    updatedAt
+    parent {
+      id
+      name
+      parentId
+    }
+  }
+}

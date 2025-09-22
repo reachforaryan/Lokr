@@ -18,6 +18,8 @@ type Resolver struct {
 	userService     *services.UserService
 	simpleFileService *services.SimpleFileService
 	fileSharingService *services.FileSharingService
+	folderService   *services.FolderService
+	fileReferenceService *services.FileReferenceService
 	jwtManager      *auth.JWTManager
 }
 
@@ -25,12 +27,16 @@ func NewResolver(
 	userService *services.UserService,
 	simpleFileService *services.SimpleFileService,
 	fileSharingService *services.FileSharingService,
+	folderService *services.FolderService,
+	fileReferenceService *services.FileReferenceService,
 	jwtManager *auth.JWTManager,
 ) *Resolver {
 	return &Resolver{
 		userService:       userService,
 		simpleFileService: simpleFileService,
 		fileSharingService: fileSharingService,
+		folderService:     folderService,
+		fileReferenceService: fileReferenceService,
 		jwtManager:        jwtManager,
 	}
 }
@@ -497,4 +503,398 @@ func (r *Resolver) SharedWithMe(ctx context.Context, limit, offset *int) ([]*dom
 	}
 
 	return files, nil
+}
+
+// Folder Resolvers
+
+func (r *Resolver) CreateFolder(ctx context.Context, input CreateFolderInput) (*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	// Convert parent ID if provided
+	var parentID *uuid.UUID
+	if input.ParentID != nil {
+		parentUUID, err := uuid.Parse(*input.ParentID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid parent ID: %w", err)
+		}
+		parentID = &parentUUID
+	}
+
+	folder, err := r.folderService.CreateFolder(ctx, userUUID, input.Name, parentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create folder: %w", err)
+	}
+
+	return folder, nil
+}
+
+func (r *Resolver) GetFolder(ctx context.Context, id string) (*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	folderUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid folder ID")
+	}
+
+	folder, err := r.folderService.GetFolderByID(ctx, folderUUID, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get folder: %w", err)
+	}
+
+	return folder, nil
+}
+
+func (r *Resolver) GetMyFolders(ctx context.Context) ([]*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	folders, err := r.folderService.GetFolderTree(ctx, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user folders: %w", err)
+	}
+
+	return folders, nil
+}
+
+func (r *Resolver) GetFolderContents(ctx context.Context, id string) (*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	// Convert folder ID
+	var folderID *uuid.UUID
+	if id != "" {
+		folderUUID, err := uuid.Parse(id)
+		if err != nil {
+			return nil, fmt.Errorf("invalid folder ID")
+		}
+		folderID = &folderUUID
+	}
+
+	folders, files, err := r.folderService.GetFolderContents(ctx, folderID, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get folder contents: %w", err)
+	}
+
+	// Create a folder object to return
+	var folder *domain.Folder
+	if folderID != nil {
+		folder, err = r.folderService.GetFolderByID(ctx, *folderID, userUUID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get folder: %w", err)
+		}
+	} else {
+		// Root folder representation
+		folder = &domain.Folder{
+			ID:     uuid.Nil,
+			UserID: userUUID,
+			Name:   "Root",
+		}
+	}
+
+	// Set children and files
+	folder.Children = folders
+	folder.Files = files
+
+	return folder, nil
+}
+
+func (r *Resolver) UpdateFolder(ctx context.Context, id string, input UpdateFolderInput) (*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	folderUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid folder ID")
+	}
+
+	var folder *domain.Folder
+
+	// Handle rename
+	if input.Name != nil {
+		folder, err = r.folderService.RenameFolder(ctx, folderUUID, userUUID, *input.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to rename folder: %w", err)
+		}
+	}
+
+	// Handle move
+	if input.ParentID != nil {
+		var newParentID *uuid.UUID
+		if *input.ParentID != "" {
+			parentUUID, err := uuid.Parse(*input.ParentID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid parent ID: %w", err)
+			}
+			newParentID = &parentUUID
+		}
+
+		folder, err = r.folderService.MoveFolder(ctx, folderUUID, userUUID, newParentID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to move folder: %w", err)
+		}
+	}
+
+	// If no changes were made, just return the current folder
+	if folder == nil {
+		folder, err = r.folderService.GetFolderByID(ctx, folderUUID, userUUID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get folder: %w", err)
+		}
+	}
+
+	return folder, nil
+}
+
+func (r *Resolver) DeleteFolder(ctx context.Context, id string, force *bool) (bool, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return false, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return false, errors.New("invalid user ID")
+	}
+
+	folderUUID, err := uuid.Parse(id)
+	if err != nil {
+		return false, fmt.Errorf("invalid folder ID")
+	}
+
+	forceDelete := false
+	if force != nil {
+		forceDelete = *force
+	}
+
+	err = r.folderService.DeleteFolder(ctx, folderUUID, userUUID, forceDelete)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete folder: %w", err)
+	}
+
+	return true, nil
+}
+
+func (r *Resolver) MoveFolder(ctx context.Context, id string, newParentID *string) (*domain.Folder, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	folderUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid folder ID")
+	}
+
+	var parentID *uuid.UUID
+	if newParentID != nil && *newParentID != "" {
+		parentUUID, err := uuid.Parse(*newParentID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid parent ID: %w", err)
+		}
+		parentID = &parentUUID
+	}
+
+	folder, err := r.folderService.MoveFolder(ctx, folderUUID, userUUID, parentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to move folder: %w", err)
+	}
+
+	return folder, nil
+}
+
+func (r *Resolver) MoveFile(ctx context.Context, id string, folderID *string) (*domain.File, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	fileUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid file ID")
+	}
+
+	var newFolderID *uuid.UUID
+	if folderID != nil && *folderID != "" {
+		folderUUID, err := uuid.Parse(*folderID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid folder ID: %w", err)
+		}
+		newFolderID = &folderUUID
+	}
+
+	// Update file's folder_id in the file service
+	file, err := r.simpleFileService.MoveFile(ctx, fileUUID, userUUID, newFolderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to move file: %w", err)
+	}
+
+	return file, nil
+}
+
+// File Reference Resolvers
+
+func (r *Resolver) CreateFileReference(ctx context.Context, input CreateFileReferenceInput) (*domain.FileReference, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	fileUUID, err := uuid.Parse(input.FileID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid file ID")
+	}
+
+	folderUUID, err := uuid.Parse(input.FolderID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid folder ID")
+	}
+
+	var customName *string
+	if input.Name != nil && *input.Name != "" {
+		customName = input.Name
+	}
+
+	reference, err := r.fileReferenceService.CreateFileReference(ctx, userUUID, fileUUID, folderUUID, customName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create file reference: %w", err)
+	}
+
+	return reference, nil
+}
+
+
+func (r *Resolver) FolderReferences(ctx context.Context, folderID string) ([]*domain.FileReference, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	folderUUID, err := uuid.Parse(folderID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid folder ID")
+	}
+
+	references, err := r.fileReferenceService.GetFolderReferences(ctx, userUUID, folderUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get folder references: %w", err)
+	}
+
+	return references, nil
+}
+
+func (r *Resolver) FileReferences(ctx context.Context, fileID string) ([]*domain.FileReference, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	fileUUID, err := uuid.Parse(fileID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid file ID")
+	}
+
+	references, err := r.fileReferenceService.GetFileReferences(ctx, userUUID, fileUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file references: %w", err)
+	}
+
+	return references, nil
+}
+
+func (r *Resolver) DeleteFileReference(ctx context.Context, id string) (bool, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return false, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return false, errors.New("invalid user ID")
+	}
+
+	referenceUUID, err := uuid.Parse(id)
+	if err != nil {
+		return false, fmt.Errorf("invalid reference ID")
+	}
+
+	err = r.fileReferenceService.DeleteFileReference(ctx, userUUID, referenceUUID)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete file reference: %w", err)
+	}
+
+	return true, nil
 }

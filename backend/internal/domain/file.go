@@ -196,6 +196,21 @@ type FolderRepository interface {
 	Delete(id uuid.UUID) error
 }
 
+// FileReference represents a reference/shortcut to a file in a folder
+type FileReference struct {
+	ID        uuid.UUID `json:"id" db:"id"`
+	FolderID  uuid.UUID `json:"folder_id" db:"folder_id"`
+	FileID    uuid.UUID `json:"file_id" db:"file_id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	Name      *string   `json:"name" db:"name"`        // Optional custom name for the reference
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+
+	// Relations
+	File   *File   `json:"file,omitempty"`
+	Folder *Folder `json:"folder,omitempty"`
+	User   *User   `json:"user,omitempty"`
+}
+
 // FileShareRepository defines the interface for file sharing operations
 type FileShareRepository interface {
 	Create(share *FileShare) error
@@ -206,4 +221,15 @@ type FileShareRepository interface {
 	Update(share *FileShare) error
 	Delete(id uuid.UUID) error
 	DeleteByFileID(fileID uuid.UUID) error
+}
+
+// FileReferenceRepository defines the interface for file reference operations
+type FileReferenceRepository interface {
+	Create(reference *FileReference) error
+	GetByID(id uuid.UUID) (*FileReference, error)
+	GetByFolderID(folderID uuid.UUID) ([]*FileReference, error)
+	GetByFileID(fileID uuid.UUID) ([]*FileReference, error)
+	Delete(id uuid.UUID) error
+	DeleteByFileID(fileID uuid.UUID) error
+	DeleteByFolderID(folderID uuid.UUID) error
 }

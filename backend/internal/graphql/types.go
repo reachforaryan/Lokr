@@ -37,6 +37,22 @@ type ShareFileInput struct {
 	ExpiresAt        *time.Time `json:"expiresAt"`
 }
 
+type CreateFolderInput struct {
+	Name     string  `json:"name"`
+	ParentID *string `json:"parentId"`
+}
+
+type UpdateFolderInput struct {
+	Name     *string `json:"name"`
+	ParentID *string `json:"parentId"`
+}
+
+type CreateFileReferenceInput struct {
+	FileID   string  `json:"fileId"`
+	FolderID string  `json:"folderId"`
+	Name     *string `json:"name"`
+}
+
 // GraphQL Response Types
 type AuthPayload struct {
 	Token        string      `json:"token"`
