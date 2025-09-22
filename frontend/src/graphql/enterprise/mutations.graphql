@@ -1,0 +1,19 @@
+mutation CreateEnterprise($input: CreateEnterpriseInput!) {
+  createEnterprise(input: $input) {
+    id
+    name
+    slug
+    domain
+    storageQuota
+    storageUsed
+    maxUsers
+    currentUsers
+    subscriptionPlan
+    subscriptionStatus
+    createdAt
+  }
+}
+
+mutation AcceptInvitation($token: String!) {
+  acceptInvitation(token: $token)
+}

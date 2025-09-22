@@ -21,6 +21,62 @@ export type Scalars = {
   Upload: { input: File; output: File; }
 };
 
+export type ActionCount = {
+  __typename?: 'ActionCount';
+  action: AuditAction;
+  count: Scalars['Int']['output'];
+};
+
+export type ActivityStats = {
+  __typename?: 'ActivityStats';
+  actionsByDay: Array<DayActivity>;
+  failedActions: Scalars['Int']['output'];
+  successfulActions: Scalars['Int']['output'];
+  topActions: Array<ActionCount>;
+  totalActions: Scalars['Int']['output'];
+  uniqueUsers: Scalars['Int']['output'];
+};
+
+export enum AuditAction {
+  FileDelete = 'FILE_DELETE',
+  FileDownload = 'FILE_DOWNLOAD',
+  FileShare = 'FILE_SHARE',
+  FileUnshare = 'FILE_UNSHARE',
+  FileUpdate = 'FILE_UPDATE',
+  FileUpload = 'FILE_UPLOAD',
+  FolderCreate = 'FOLDER_CREATE',
+  FolderDelete = 'FOLDER_DELETE',
+  FolderUpdate = 'FOLDER_UPDATE',
+  PasswordChange = 'PASSWORD_CHANGE',
+  ProfileUpdate = 'PROFILE_UPDATE',
+  UserLogin = 'USER_LOGIN',
+  UserLogout = 'USER_LOGOUT',
+  UserRegister = 'USER_REGISTER'
+}
+
+export type AuditLog = {
+  __typename?: 'AuditLog';
+  action: AuditAction;
+  createdAt: Scalars['Time']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  resourceId?: Maybe<Scalars['ID']['output']>;
+  resourceName: Scalars['String']['output'];
+  resourceType: Scalars['String']['output'];
+  status: AuditStatus;
+  user?: Maybe<User>;
+  userAgent?: Maybe<Scalars['String']['output']>;
+  userId: Scalars['ID']['output'];
+};
+
+export enum AuditStatus {
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Success = 'SUCCESS'
+}
+
 export type AuthPayload = {
   __typename?: 'AuthPayload';
   refreshToken: Scalars['String']['output'];
@@ -51,6 +107,12 @@ export type CreateUserInput = {
   email: Scalars['String']['input'];
   name: Scalars['String']['input'];
   password: Scalars['String']['input'];
+};
+
+export type DayActivity = {
+  __typename?: 'DayActivity';
+  count: Scalars['Int']['output'];
+  date: Scalars['String']['output'];
 };
 
 export type Enterprise = {
@@ -463,6 +525,8 @@ export type PublicShareResponse = {
 
 export type Query = {
   __typename?: 'Query';
+  activityStats: ActivityStats;
+  auditLogs: Array<AuditLog>;
   downloadUrl: Scalars['String']['output'];
   enterprise?: Maybe<Enterprise>;
   enterpriseBySlug?: Maybe<Enterprise>;
@@ -480,12 +544,26 @@ export type Query = {
   myFiles: Array<File>;
   myFolders: Array<Folder>;
   publicFile?: Maybe<File>;
+  recentActivity: Array<AuditLog>;
   searchFiles: FileSearchResult;
   searchUsers: Array<User>;
   sharedWithMe: Array<File>;
   storageStats: StorageStats;
   user?: Maybe<User>;
   users: Array<User>;
+};
+
+
+export type QueryActivityStatsArgs = {
+  period?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryAuditLogsArgs = {
+  action?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -561,6 +639,11 @@ export type QueryMyFilesArgs = {
 
 export type QueryPublicFileArgs = {
   shareToken: Scalars['String']['input'];
+};
+
+
+export type QueryRecentActivityArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -695,6 +778,30 @@ export type User = {
   updatedAt: Scalars['Time']['output'];
 };
 
+export type GetAuditLogsQueryVariables = Exact<{
+  limit: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+  action?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetAuditLogsQuery = { __typename?: 'Query', auditLogs: Array<{ __typename?: 'AuditLog', id: string, userId: string, action: AuditAction, status: AuditStatus, resourceType: string, resourceId?: string | null, resourceName: string, description: string, ipAddress?: string | null, userAgent?: string | null, metadata?: Record<string, any> | null, createdAt: string, user?: { __typename?: 'User', id: string, name: string, email: string } | null }> };
+
+export type GetRecentActivityQueryVariables = Exact<{
+  limit: Scalars['Int']['input'];
+}>;
+
+
+export type GetRecentActivityQuery = { __typename?: 'Query', recentActivity: Array<{ __typename?: 'AuditLog', id: string, userId: string, action: AuditAction, status: AuditStatus, resourceType: string, resourceId?: string | null, resourceName: string, description: string, ipAddress?: string | null, userAgent?: string | null, metadata?: Record<string, any> | null, createdAt: string, user?: { __typename?: 'User', id: string, name: string, email: string } | null }> };
+
+export type GetActivityStatsQueryVariables = Exact<{
+  period: Scalars['String']['input'];
+}>;
+
+
+export type GetActivityStatsQuery = { __typename?: 'Query', activityStats: { __typename?: 'ActivityStats', totalActions: number, successfulActions: number, failedActions: number, uniqueUsers: number, topActions: Array<{ __typename?: 'ActionCount', action: AuditAction, count: number }>, actionsByDay: Array<{ __typename?: 'DayActivity', date: string, count: number }> } };
+
 export type LoginMutationVariables = Exact<{
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
@@ -776,6 +883,20 @@ export type GetUsersQueryVariables = Exact<{
 
 
 export type GetUsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', id: string, email: string, name: string, profileImage?: string | null, role: Role, storageUsed: number, storageQuota: number, emailVerified: boolean, lastLoginAt?: string | null, enterpriseId?: string | null, enterpriseRole?: EnterpriseRole | null, createdAt: string, updatedAt: string }> };
+
+export type CreateEnterpriseMutationVariables = Exact<{
+  input: CreateEnterpriseInput;
+}>;
+
+
+export type CreateEnterpriseMutation = { __typename?: 'Mutation', createEnterprise: { __typename?: 'Enterprise', id: string, name: string, slug: string, domain?: string | null, storageQuota: number, storageUsed: number, maxUsers: number, currentUsers: number, subscriptionPlan: SubscriptionPlan, subscriptionStatus: SubscriptionStatus, createdAt: string } };
+
+export type AcceptInvitationMutationVariables = Exact<{
+  token: Scalars['String']['input'];
+}>;
+
+
+export type AcceptInvitationMutation = { __typename?: 'Mutation', acceptInvitation: boolean };
 
 export type CreateFileReferenceMutationVariables = Exact<{
   input: CreateFileReferenceInput;
@@ -989,6 +1110,157 @@ export type GetFolderQueryVariables = Exact<{
 export type GetFolderQuery = { __typename?: 'Query', folder?: { __typename?: 'Folder', id: string, name: string, parentId?: string | null, createdAt: string, updatedAt: string, parent?: { __typename?: 'Folder', id: string, name: string, parentId?: string | null } | null } | null };
 
 
+export const GetAuditLogsDocument = gql`
+    query GetAuditLogs($limit: Int!, $offset: Int!, $action: String, $status: String) {
+  auditLogs(limit: $limit, offset: $offset, action: $action, status: $status) {
+    id
+    userId
+    user {
+      id
+      name
+      email
+    }
+    action
+    status
+    resourceType
+    resourceId
+    resourceName
+    description
+    ipAddress
+    userAgent
+    metadata
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useGetAuditLogsQuery__
+ *
+ * To run a query within a React component, call `useGetAuditLogsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetAuditLogsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetAuditLogsQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *      action: // value for 'action'
+ *      status: // value for 'status'
+ *   },
+ * });
+ */
+export function useGetAuditLogsQuery(baseOptions: ApolloReactHooks.QueryHookOptions<GetAuditLogsQuery, GetAuditLogsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetAuditLogsQuery, GetAuditLogsQueryVariables>(GetAuditLogsDocument, options);
+      }
+export function useGetAuditLogsLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetAuditLogsQuery, GetAuditLogsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetAuditLogsQuery, GetAuditLogsQueryVariables>(GetAuditLogsDocument, options);
+        }
+export type GetAuditLogsQueryHookResult = ReturnType<typeof useGetAuditLogsQuery>;
+export type GetAuditLogsLazyQueryHookResult = ReturnType<typeof useGetAuditLogsLazyQuery>;
+export type GetAuditLogsQueryResult = Apollo.QueryResult<GetAuditLogsQuery, GetAuditLogsQueryVariables>;
+export const GetRecentActivityDocument = gql`
+    query GetRecentActivity($limit: Int!) {
+  recentActivity(limit: $limit) {
+    id
+    userId
+    user {
+      id
+      name
+      email
+    }
+    action
+    status
+    resourceType
+    resourceId
+    resourceName
+    description
+    ipAddress
+    userAgent
+    metadata
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useGetRecentActivityQuery__
+ *
+ * To run a query within a React component, call `useGetRecentActivityQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetRecentActivityQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetRecentActivityQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useGetRecentActivityQuery(baseOptions: ApolloReactHooks.QueryHookOptions<GetRecentActivityQuery, GetRecentActivityQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetRecentActivityQuery, GetRecentActivityQueryVariables>(GetRecentActivityDocument, options);
+      }
+export function useGetRecentActivityLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetRecentActivityQuery, GetRecentActivityQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetRecentActivityQuery, GetRecentActivityQueryVariables>(GetRecentActivityDocument, options);
+        }
+export type GetRecentActivityQueryHookResult = ReturnType<typeof useGetRecentActivityQuery>;
+export type GetRecentActivityLazyQueryHookResult = ReturnType<typeof useGetRecentActivityLazyQuery>;
+export type GetRecentActivityQueryResult = Apollo.QueryResult<GetRecentActivityQuery, GetRecentActivityQueryVariables>;
+export const GetActivityStatsDocument = gql`
+    query GetActivityStats($period: String!) {
+  activityStats(period: $period) {
+    totalActions
+    successfulActions
+    failedActions
+    uniqueUsers
+    topActions {
+      action
+      count
+    }
+    actionsByDay {
+      date
+      count
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetActivityStatsQuery__
+ *
+ * To run a query within a React component, call `useGetActivityStatsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetActivityStatsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetActivityStatsQuery({
+ *   variables: {
+ *      period: // value for 'period'
+ *   },
+ * });
+ */
+export function useGetActivityStatsQuery(baseOptions: ApolloReactHooks.QueryHookOptions<GetActivityStatsQuery, GetActivityStatsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useQuery<GetActivityStatsQuery, GetActivityStatsQueryVariables>(GetActivityStatsDocument, options);
+      }
+export function useGetActivityStatsLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetActivityStatsQuery, GetActivityStatsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return ApolloReactHooks.useLazyQuery<GetActivityStatsQuery, GetActivityStatsQueryVariables>(GetActivityStatsDocument, options);
+        }
+export type GetActivityStatsQueryHookResult = ReturnType<typeof useGetActivityStatsQuery>;
+export type GetActivityStatsLazyQueryHookResult = ReturnType<typeof useGetActivityStatsLazyQuery>;
+export type GetActivityStatsQueryResult = Apollo.QueryResult<GetActivityStatsQuery, GetActivityStatsQueryVariables>;
 export const LoginDocument = gql`
     mutation Login($email: String!, $password: String!) {
   login(email: $email, password: $password) {
@@ -1494,6 +1766,80 @@ export function useGetUsersLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHoo
 export type GetUsersQueryHookResult = ReturnType<typeof useGetUsersQuery>;
 export type GetUsersLazyQueryHookResult = ReturnType<typeof useGetUsersLazyQuery>;
 export type GetUsersQueryResult = Apollo.QueryResult<GetUsersQuery, GetUsersQueryVariables>;
+export const CreateEnterpriseDocument = gql`
+    mutation CreateEnterprise($input: CreateEnterpriseInput!) {
+  createEnterprise(input: $input) {
+    id
+    name
+    slug
+    domain
+    storageQuota
+    storageUsed
+    maxUsers
+    currentUsers
+    subscriptionPlan
+    subscriptionStatus
+    createdAt
+  }
+}
+    `;
+export type CreateEnterpriseMutationFn = Apollo.MutationFunction<CreateEnterpriseMutation, CreateEnterpriseMutationVariables>;
+
+/**
+ * __useCreateEnterpriseMutation__
+ *
+ * To run a mutation, you first call `useCreateEnterpriseMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateEnterpriseMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createEnterpriseMutation, { data, loading, error }] = useCreateEnterpriseMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateEnterpriseMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<CreateEnterpriseMutation, CreateEnterpriseMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<CreateEnterpriseMutation, CreateEnterpriseMutationVariables>(CreateEnterpriseDocument, options);
+      }
+export type CreateEnterpriseMutationHookResult = ReturnType<typeof useCreateEnterpriseMutation>;
+export type CreateEnterpriseMutationResult = Apollo.MutationResult<CreateEnterpriseMutation>;
+export type CreateEnterpriseMutationOptions = Apollo.BaseMutationOptions<CreateEnterpriseMutation, CreateEnterpriseMutationVariables>;
+export const AcceptInvitationDocument = gql`
+    mutation AcceptInvitation($token: String!) {
+  acceptInvitation(token: $token)
+}
+    `;
+export type AcceptInvitationMutationFn = Apollo.MutationFunction<AcceptInvitationMutation, AcceptInvitationMutationVariables>;
+
+/**
+ * __useAcceptInvitationMutation__
+ *
+ * To run a mutation, you first call `useAcceptInvitationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAcceptInvitationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [acceptInvitationMutation, { data, loading, error }] = useAcceptInvitationMutation({
+ *   variables: {
+ *      token: // value for 'token'
+ *   },
+ * });
+ */
+export function useAcceptInvitationMutation(baseOptions?: ApolloReactHooks.MutationHookOptions<AcceptInvitationMutation, AcceptInvitationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return ApolloReactHooks.useMutation<AcceptInvitationMutation, AcceptInvitationMutationVariables>(AcceptInvitationDocument, options);
+      }
+export type AcceptInvitationMutationHookResult = ReturnType<typeof useAcceptInvitationMutation>;
+export type AcceptInvitationMutationResult = Apollo.MutationResult<AcceptInvitationMutation>;
+export type AcceptInvitationMutationOptions = Apollo.BaseMutationOptions<AcceptInvitationMutation, AcceptInvitationMutationVariables>;
 export const CreateFileReferenceDocument = gql`
     mutation CreateFileReference($input: CreateFileReferenceInput!) {
   createFileReference(input: $input) {

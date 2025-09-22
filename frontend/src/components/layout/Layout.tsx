@@ -5,6 +5,7 @@ import {
   DocumentIcon,
   CogIcon,
   UserGroupIcon,
+  ClockIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 
@@ -15,6 +16,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Files', href: '/files', icon: DocumentIcon },
+  { name: 'Audit Log', href: '/audit', icon: ClockIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
   { name: 'Admin', href: '/admin', icon: UserGroupIcon },
 ]

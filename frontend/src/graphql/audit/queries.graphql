@@ -1,0 +1,60 @@
+query GetAuditLogs($limit: Int!, $offset: Int!, $action: String, $status: String) {
+  auditLogs(limit: $limit, offset: $offset, action: $action, status: $status) {
+    id
+    userId
+    user {
+      id
+      name
+      email
+    }
+    action
+    status
+    resourceType
+    resourceId
+    resourceName
+    description
+    ipAddress
+    userAgent
+    metadata
+    createdAt
+  }
+}
+
+query GetRecentActivity($limit: Int!) {
+  recentActivity(limit: $limit) {
+    id
+    userId
+    user {
+      id
+      name
+      email
+    }
+    action
+    status
+    resourceType
+    resourceId
+    resourceName
+    description
+    ipAddress
+    userAgent
+    metadata
+    createdAt
+  }
+}
+
+query GetActivityStats($period: String!) {
+  activityStats(period: $period) {
+    totalActions
+    successfulActions
+    failedActions
+    uniqueUsers
+    topActions {
+      action
+      count
+    }
+    actionsByDay {
+      date
+      count
+    }
+  }
+}

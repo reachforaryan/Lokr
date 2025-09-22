@@ -8,6 +8,7 @@ import { FilesEnhanced as Files } from './pages/FilesEnhanced'
 import { Settings } from './pages/Settings'
 import { Admin } from './pages/Admin'
 import { SharedFile } from './pages/SharedFile'
+import { AuditLog } from './pages/AuditLog'
 import { useAuth } from './hooks/useAuth'
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/files" element={<Files />} />
+              <Route path="/audit" element={<AuditLog />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Dashboard />} />

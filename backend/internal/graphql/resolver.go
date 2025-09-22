@@ -20,6 +20,8 @@ type Resolver struct {
 	fileSharingService *services.FileSharingService
 	folderService   *services.FolderService
 	fileReferenceService *services.FileReferenceService
+	folderFileService *services.FolderFileService
+	auditService    *services.AuditService
 	jwtManager      *auth.JWTManager
 }
 
@@ -29,6 +31,8 @@ func NewResolver(
 	fileSharingService *services.FileSharingService,
 	folderService *services.FolderService,
 	fileReferenceService *services.FileReferenceService,
+	folderFileService *services.FolderFileService,
+	auditService *services.AuditService,
 	jwtManager *auth.JWTManager,
 ) *Resolver {
 	return &Resolver{
@@ -37,6 +41,8 @@ func NewResolver(
 		fileSharingService: fileSharingService,
 		folderService:     folderService,
 		fileReferenceService: fileReferenceService,
+		folderFileService: folderFileService,
+		auditService:      auditService,
 		jwtManager:        jwtManager,
 	}
 }
@@ -254,6 +260,32 @@ func (r *Resolver) GetMyFiles(ctx context.Context, limit, offset *int) ([]*domai
 func (r *Resolver) GetFile(ctx context.Context, id string) (*domain.File, error) {
 	// File service not available yet
 	return nil, fmt.Errorf("file service not available")
+}
+
+func (r *Resolver) DeleteFile(ctx context.Context, id string) (bool, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return false, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return false, errors.New("invalid user ID")
+	}
+
+	fileUUID, err := uuid.Parse(id)
+	if err != nil {
+		return false, fmt.Errorf("invalid file ID")
+	}
+
+	// Use the file service to delete the file (handles both RDS and S3 cleanup)
+	err = r.simpleFileService.DeleteFile(ctx, fileUUID, userUUID)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return true, nil
 }
 
 // Storage Stats
@@ -815,9 +847,21 @@ func (r *Resolver) CreateFileReference(ctx context.Context, input CreateFileRefe
 		customName = input.Name
 	}
 
-	reference, err := r.fileReferenceService.CreateFileReference(ctx, userUUID, fileUUID, folderUUID, customName)
+	// Use the new folder file service that works like file sharing
+	copiedFile, err := r.folderFileService.AddFileToFolder(ctx, fileUUID, folderUUID, userUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create file reference: %w", err)
+		return nil, fmt.Errorf("failed to add file to folder: %w", err)
+	}
+
+	// Convert the copied file to a FileReference-like structure for compatibility
+	reference := &domain.FileReference{
+		ID:        uuid.New(),  // Generate a new ID for compatibility
+		FolderID:  folderUUID,
+		FileID:    copiedFile.ID, // Use the copied file's ID
+		UserID:    userUUID,
+		Name:      customName,
+		CreatedAt: copiedFile.UploadDate, // Use the copy creation time
+		// The File field will be populated by the GraphQL resolver
 	}
 
 	return reference, nil
@@ -841,9 +885,25 @@ func (r *Resolver) FolderReferences(ctx context.Context, folderID string) ([]*do
 		return nil, fmt.Errorf("invalid folder ID")
 	}
 
-	references, err := r.fileReferenceService.GetFolderReferences(ctx, userUUID, folderUUID)
+	// Get files in the folder using the new service
+	files, err := r.folderFileService.GetFolderFiles(ctx, folderUUID, userUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get folder references: %w", err)
+		return nil, fmt.Errorf("failed to get folder files: %w", err)
+	}
+
+	// Convert files to FileReference-like objects for compatibility
+	var references []*domain.FileReference
+	for _, file := range files {
+		reference := &domain.FileReference{
+			ID:        uuid.New(),  // Generate a new ID for compatibility
+			FolderID:  folderUUID,
+			FileID:    file.ID,
+			UserID:    userUUID,
+			Name:      nil,  // No custom name for these "references"
+			CreatedAt: file.UploadDate,
+			// The File field will be populated by the GraphQL resolver
+		}
+		references = append(references, reference)
 	}
 
 	return references, nil
@@ -897,4 +957,112 @@ func (r *Resolver) DeleteFileReference(ctx context.Context, id string) (bool, er
 	}
 
 	return true, nil
+}
+
+// Audit Log Resolvers
+
+func (r *Resolver) GetAuditLogs(ctx context.Context, limit, offset *int, action *string, status *string) ([]*domain.AuditLog, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	fmt.Printf("DEBUG: GetAuditLogs called with userID=%s, limit=%v, offset=%v\n", userID, limit, offset)
+
+	// Set default values
+	defaultLimit := 50
+	defaultOffset := 0
+	if limit == nil {
+		limit = &defaultLimit
+	}
+	if offset == nil {
+		offset = &defaultOffset
+	}
+
+	// Convert action and status filters
+	var actionFilter *domain.AuditAction
+	var statusFilter *domain.AuditStatus
+
+	if action != nil && *action != "" {
+		auditAction := domain.AuditAction(*action)
+		actionFilter = &auditAction
+	}
+
+	if status != nil && *status != "" {
+		auditStatus := domain.AuditStatus(*status)
+		statusFilter = &auditStatus
+	}
+
+	logs, err := r.auditService.GetAuditLogs(ctx, userUUID, *limit, *offset, actionFilter, statusFilter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get audit logs: %w", err)
+	}
+
+	fmt.Printf("DEBUG: GetAuditLogs returning %d logs\n", len(logs))
+	return logs, nil
+}
+
+func (r *Resolver) GetRecentActivity(ctx context.Context, limit *int) ([]*domain.AuditLog, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	// Set default limit
+	defaultLimit := 20
+	if limit == nil {
+		limit = &defaultLimit
+	}
+
+	logs, err := r.auditService.GetRecentActivity(ctx, userUUID, *limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recent activity: %w", err)
+	}
+
+	return logs, nil
+}
+
+func (r *Resolver) GetActivityStats(ctx context.Context, days *int) (map[string]interface{}, error) {
+	// Get user ID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID")
+	}
+
+	// Set default days
+	defaultDays := 7
+	if days == nil {
+		days = &defaultDays
+	}
+
+	since := time.Now().AddDate(0, 0, -*days)
+	stats, err := r.auditService.GetActivityStats(ctx, userUUID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get activity stats: %w", err)
+	}
+
+	// Convert to interface{} map for GraphQL
+	result := make(map[string]interface{})
+	for k, v := range stats {
+		result[k] = v
+	}
+
+	return result, nil
 }

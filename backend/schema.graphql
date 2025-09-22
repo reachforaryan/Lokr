@@ -335,6 +335,11 @@ type Query {
 
   # Download URL (presigned if supported)
   downloadUrl(fileId: ID!, expirationHours: Int = 1): String!
+
+  # Audit log queries
+  auditLogs(limit: Int = 50, offset: Int = 0, action: String, status: String): [AuditLog!]!
+  recentActivity(limit: Int = 10): [AuditLog!]!
+  activityStats(period: String = "7d"): ActivityStats!
 }
 
 # Mutations
@@ -404,3 +409,62 @@ type Subscription {
 
 # JSON scalar for enterprise settings and other complex data
 scalar JSON
+
+# Audit Log Types
+type AuditLog {
+  id: ID!
+  userId: ID!
+  user: User
+  action: AuditAction!
+  status: AuditStatus!
+  resourceType: String!
+  resourceId: ID
+  resourceName: String!
+  description: String!
+  ipAddress: String
+  userAgent: String
+  metadata: JSON
+  createdAt: Time!
+}
+
+enum AuditAction {
+  FILE_UPLOAD
+  FILE_DOWNLOAD
+  FILE_DELETE
+  FILE_UPDATE
+  FILE_SHARE
+  FILE_UNSHARE
+  FOLDER_CREATE
+  FOLDER_DELETE
+  FOLDER_UPDATE
+  USER_LOGIN
+  USER_LOGOUT
+  USER_REGISTER
+  PASSWORD_CHANGE
+  PROFILE_UPDATE
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+type ActivityStats {
+  totalActions: Int!
+  successfulActions: Int!
+  failedActions: Int!
+  uniqueUsers: Int!
+  topActions: [ActionCount!]!
+  actionsByDay: [DayActivity!]!
+}
+
+type ActionCount {
+  action: AuditAction!
+  count: Int!
+}
+
+type DayActivity {
+  date: String!
+  count: Int!
+}

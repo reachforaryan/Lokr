@@ -572,6 +572,29 @@ func (h *Handler) processMutation(ctx context.Context, query string, variables m
 		}
 	}
 
+	// Delete file mutation
+	if strings.Contains(query, "deleteFile(") {
+		fileID, ok := variables["id"].(string)
+		if !ok {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: "File ID is required"}},
+			}
+		}
+
+		result, err := h.resolver.DeleteFile(ctx, fileID)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"deleteFile": result,
+			},
+		}
+	}
+
 	// File reference mutations
 	if strings.Contains(query, "createFileReference(") {
 		input, ok := variables["input"].(map[string]interface{})
@@ -1087,6 +1110,144 @@ func (h *Handler) processQueryOperation(ctx context.Context, query string, varia
 		return GraphQLResponse{
 			Data: map[string]interface{}{
 				"fileReferences": references,
+			},
+		}
+	}
+
+	// Audit log queries
+	if strings.Contains(query, "auditLogs") {
+		fmt.Printf("DEBUG: auditLogs query detected!\n")
+		var limit, offset *int
+		var action, status *string
+
+		if variables != nil {
+			if l, ok := variables["limit"].(float64); ok {
+				limitInt := int(l)
+				limit = &limitInt
+			}
+			if o, ok := variables["offset"].(float64); ok {
+				offsetInt := int(o)
+				offset = &offsetInt
+			}
+			if a, ok := variables["action"].(string); ok && a != "" {
+				action = &a
+			}
+			if s, ok := variables["status"].(string); ok && s != "" {
+				status = &s
+			}
+		}
+
+		fmt.Printf("DEBUG: About to call h.resolver.GetAuditLogs\n")
+		result, err := h.resolver.GetAuditLogs(ctx, limit, offset, action, status)
+		if err != nil {
+			fmt.Printf("DEBUG: GetAuditLogs returned error: %v\n", err)
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+		fmt.Printf("DEBUG: GetAuditLogs returned %d results\n", len(result))
+
+		logs := make([]map[string]interface{}, len(result))
+		for i, log := range result {
+			logs[i] = map[string]interface{}{
+				"id":           log.ID.String(),
+				"userId":       log.UserID.String(),
+				"action":       log.Action,
+				"status":       log.Status,
+				"resourceType": log.ResourceType,
+				"resourceId":   nil,
+				"resourceName": log.ResourceName,
+				"description":  log.Description,
+				"ipAddress":    log.IPAddress,
+				"userAgent":    log.UserAgent,
+				"metadata":     log.Metadata,
+				"createdAt":    log.CreatedAt,
+				"user": map[string]interface{}{
+					"id":    log.User.ID.String(),
+					"name":  log.User.Name,
+					"email": log.User.Email,
+				},
+			}
+			if log.ResourceID != nil {
+				logs[i]["resourceId"] = log.ResourceID.String()
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"auditLogs": logs,
+			},
+		}
+	}
+
+	if strings.Contains(query, "recentActivity") {
+		var limit *int
+		if variables != nil {
+			if l, ok := variables["limit"].(float64); ok {
+				limitInt := int(l)
+				limit = &limitInt
+			}
+		}
+
+		result, err := h.resolver.GetRecentActivity(ctx, limit)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		logs := make([]map[string]interface{}, len(result))
+		for i, log := range result {
+			logs[i] = map[string]interface{}{
+				"id":           log.ID.String(),
+				"userId":       log.UserID.String(),
+				"action":       log.Action,
+				"status":       log.Status,
+				"resourceType": log.ResourceType,
+				"resourceId":   nil,
+				"resourceName": log.ResourceName,
+				"description":  log.Description,
+				"ipAddress":    log.IPAddress,
+				"userAgent":    log.UserAgent,
+				"metadata":     log.Metadata,
+				"createdAt":    log.CreatedAt,
+				"user": map[string]interface{}{
+					"id":    log.User.ID.String(),
+					"name":  log.User.Name,
+					"email": log.User.Email,
+				},
+			}
+			if log.ResourceID != nil {
+				logs[i]["resourceId"] = log.ResourceID.String()
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"recentActivity": logs,
+			},
+		}
+	}
+
+	if strings.Contains(query, "activityStats") {
+		var days *int
+		if variables != nil {
+			if d, ok := variables["days"].(float64); ok {
+				daysInt := int(d)
+				days = &daysInt
+			}
+		}
+
+		result, err := h.resolver.GetActivityStats(ctx, days)
+		if err != nil {
+			return GraphQLResponse{
+				Errors: []GraphQLError{{Message: err.Error()}},
+			}
+		}
+
+		return GraphQLResponse{
+			Data: map[string]interface{}{
+				"activityStats": result,
 			},
 		}
 	}

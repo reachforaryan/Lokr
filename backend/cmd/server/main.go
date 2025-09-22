@@ -83,9 +83,13 @@ func main() {
 
 	// Initialize file reference service
 	fileReferenceService := services.NewFileReferenceService(fileReferenceRepo, fileRepo, folderRepo)
+	folderFileService := services.NewFolderFileService(infra.DB)
+
+	// Initialize audit service
+	auditService := services.NewAuditService(infra.DB, logger)
 
 	// Initialize GraphQL resolver and handler
-	resolver := graphql.NewResolver(userService, simpleFileService, fileSharingService, folderService, fileReferenceService, jwtManager)
+	resolver := graphql.NewResolver(userService, simpleFileService, fileSharingService, folderService, fileReferenceService, folderFileService, auditService, jwtManager)
 	graphqlHandler := graphql.NewHandler(resolver, jwtManager)
 
 	// Create Gin router
@@ -185,8 +189,13 @@ func main() {
 					nil, // visibility (defaults to private)
 				)
 				if err != nil {
+					// Log failed upload
+					auditService.LogFileUpload(c.Request.Context(), userUUID, uuid.Nil, fileHeader.Filename, c.ClientIP(), c.GetHeader("User-Agent"))
 					continue
 				}
+
+				// Log successful upload
+				auditService.LogFileUpload(c.Request.Context(), userUUID, uploadedFile.ID, uploadedFile.OriginalName, c.ClientIP(), c.GetHeader("User-Agent"))
 
 				uploadedFiles = append(uploadedFiles, map[string]interface{}{
 					"id":           uploadedFile.ID.String(),
@@ -263,6 +272,9 @@ func main() {
 				return
 			}
 
+			// Log successful download
+			auditService.LogFileDownload(c.Request.Context(), userUUID, targetFile.ID, targetFile.OriginalName, c.ClientIP(), c.GetHeader("User-Agent"))
+
 			// Set headers for download
 			c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", targetFile.OriginalName))
 			c.Header("Content-Type", targetFile.MimeType)
@@ -337,6 +349,9 @@ func main() {
 				return
 			}
 
+			// Log successful preview
+			auditService.LogFilePreview(c.Request.Context(), userUUID, targetFile.ID, targetFile.OriginalName, c.ClientIP(), c.GetHeader("User-Agent"))
+
 			// Set headers for inline display
 			c.Header("Content-Type", targetFile.MimeType)
 			c.Header("Content-Length", fmt.Sprintf("%d", len(content)))
@@ -377,6 +392,16 @@ func main() {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+
+			// Get file details for logging
+			var fileName string
+			err = infra.DB.QueryRow(c.Request.Context(), "SELECT original_name FROM files WHERE id = $1", fileUUID).Scan(&fileName)
+			if err != nil {
+				fileName = "Unknown file"
+			}
+
+			// Log successful public share
+			auditService.LogPublicShare(c.Request.Context(), userUUID, fileUUID, fileName, shareResponse.ShareToken, c.ClientIP(), c.GetHeader("User-Agent"))
 
 			c.JSON(http.StatusOK, shareResponse)
 		})

@@ -194,6 +194,57 @@ func (s *SimpleFileService) MoveFile(ctx context.Context, fileID, userID uuid.UU
 	return &existingFile, nil
 }
 
+func (s *SimpleFileService) DeleteFile(ctx context.Context, fileID, userID uuid.UUID) error {
+	// Verify file ownership and get file info
+	var file domain.File
+	err := s.db.QueryRow(ctx, `
+		SELECT id, user_id, content_hash
+		FROM files
+		WHERE id = $1 AND user_id = $2`, fileID, userID).Scan(
+		&file.ID, &file.UserID, &file.ContentHash,
+	)
+	if err != nil {
+		return fmt.Errorf("file not found or access denied: %w", err)
+	}
+
+	// Delete the file record
+	_, err = s.db.Exec(ctx, "DELETE FROM files WHERE id = $1", fileID)
+	if err != nil {
+		return fmt.Errorf("failed to delete file record: %w", err)
+	}
+
+	// Decrement reference count and check if we should delete from storage
+	var newRefCount int
+	var filePath string
+	err = s.db.QueryRow(ctx, `
+		UPDATE file_contents
+		SET reference_count = reference_count - 1
+		WHERE content_hash = $1
+		RETURNING reference_count, file_path`, file.ContentHash).Scan(&newRefCount, &filePath)
+
+	if err != nil {
+		return fmt.Errorf("failed to update reference count: %w", err)
+	}
+
+	// If no more references, delete from storage and database
+	if newRefCount <= 0 {
+		// Delete from S3/local storage
+		err = s.storage.DeleteFile(ctx, filePath)
+		if err != nil {
+			// Log error but don't fail the whole operation
+			fmt.Printf("WARNING: Failed to delete file from storage: %v\n", err)
+		}
+
+		// Delete from file_contents table
+		_, err = s.db.Exec(ctx, "DELETE FROM file_contents WHERE content_hash = $1", file.ContentHash)
+		if err != nil {
+			return fmt.Errorf("failed to delete file content record: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func generateSafeFilename(originalName string) string {
 	// Remove unsafe characters and generate a safe filename
 	name := strings.ReplaceAll(originalName, " ", "_")
